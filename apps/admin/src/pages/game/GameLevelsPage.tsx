@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-import { useMetricsFilters } from "../../hooks/useMetricsFilters";
-import { MetricsChrome } from "../../components/metrics/MetricsChrome";
+import { useGameId, useGameMetricsFilters } from "../../hooks/useGameDashboard";
+import { GameFilters } from "../../components/game/GameFilters";
 import { ChartPanel } from "../../components/metrics/ChartPanel";
 import { EmptyState, ErrorState, SkeletonList } from "../../components/States";
 
-export function MetricsFunnelPage() {
-  const { filters, setFilters, query } = useMetricsFilters();
+export function GameLevelsPage() {
+  const gameId = useGameId();
+  const { filters, setFilters, query } = useGameMetricsFilters(gameId);
   const [data, setData] = useState<Awaited<ReturnType<typeof api.metricsFunnel>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +15,6 @@ export function MetricsFunnelPage() {
     let cancelled = false;
     setData(null);
     setError(null);
-    if (!filters.gameId) return;
     void api
       .metricsFunnel(query)
       .then((d) => {
@@ -26,21 +26,16 @@ export function MetricsFunnelPage() {
     return () => {
       cancelled = true;
     };
-  }, [query, filters.gameId]);
+  }, [query]);
 
   return (
-    <MetricsChrome
-      title="Level funnel"
-      blurb="Starts, wins, fails and quits for each level."
-      filters={filters}
-      onChange={setFilters}
-    >
-      {!filters.gameId ? (
-        <EmptyState title="Pick a game" body="Choose One Spark, Loom Rush or Borrowed Time above." />
-      ) : null}
-      {filters.gameId && error ? <ErrorState message={error} /> : null}
-      {filters.gameId && !error && !data ? <SkeletonList rows={4} /> : null}
-      {filters.gameId && data && data.levels.length === 0 ? (
+    <div className="game-section">
+      <h2 className="section-title">Levels</h2>
+      <p className="metrics-caption">Starts, wins, fails and quits for each level.</p>
+      <GameFilters filters={filters} onChange={setFilters} />
+      {error ? <ErrorState message={error} /> : null}
+      {!error && !data ? <SkeletonList rows={4} /> : null}
+      {data && data.levels.length === 0 ? (
         <EmptyState title="No level play yet" body="Funnel rows appear after level events roll up." />
       ) : null}
       {data && data.levels.length > 0 ? (
@@ -86,6 +81,6 @@ export function MetricsFunnelPage() {
           </div>
         </>
       ) : null}
-    </MetricsChrome>
+    </div>
   );
 }

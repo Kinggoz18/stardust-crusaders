@@ -1,16 +1,23 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { num, pct } from "../../lib/metrics-filters";
-import { useMetricsFilters } from "../../hooks/useMetricsFilters";
-import { MetricsChrome } from "../../components/metrics/MetricsChrome";
+import { useAuth } from "../../lib/auth";
+import { gamePath, roleAtLeast } from "../../lib/games";
+import { useGameId, useGameMetricsFilters } from "../../hooks/useGameDashboard";
+import { GameFilters } from "../../components/game/GameFilters";
+import { IosLimitedLabel } from "../../components/IosLimitedLabel";
 import { EmptyState, ErrorState, SkeletonList } from "../../components/States";
 
-export function MetricsAdsPage() {
-  const { filters, setFilters, query } = useMetricsFilters();
+export function GameAdsPage() {
+  const gameId = useGameId();
+  const auth = useAuth();
+  const { filters, setFilters, query } = useGameMetricsFilters(gameId);
   const [data, setData] = useState<Awaited<ReturnType<typeof api.metricsAds>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!roleAtLeast(auth.role, "support")) return;
     let cancelled = false;
     setData(null);
     setError(null);
@@ -25,7 +32,11 @@ export function MetricsAdsPage() {
     return () => {
       cancelled = true;
     };
-  }, [query]);
+  }, [query, auth.role]);
+
+  if (!roleAtLeast(auth.role, "support")) {
+    return <Navigate to={gamePath(gameId)} replace />;
+  }
 
   const empty =
     data &&
@@ -35,16 +46,20 @@ export function MetricsAdsPage() {
     data.iapPurchasers === 0;
 
   return (
-    <MetricsChrome
-      title="Ads & purchases"
-      blurb="Rewarded ads, interstitials, and in-app purchases."
-      filters={filters}
-      onChange={setFilters}
-    >
+    <div className="game-section">
+      <h2 className="section-title">Ads & purchases</h2>
+      <p className="metrics-caption">
+        Rewarded ads, interstitials and store purchases for this game.{" "}
+        <IosLimitedLabel detail="Ad revenue per player waits on network reports and is limited without tracking permission on iOS." />
+      </p>
+      <GameFilters filters={filters} onChange={setFilters} />
       {error ? <ErrorState message={error} /> : null}
       {!error && !data ? <SkeletonList rows={3} /> : null}
       {empty ? (
-        <EmptyState title="No ad or purchase activity" body="These numbers fill in from events and store webhooks." />
+        <EmptyState
+          title="No ad or purchase activity"
+          body="These numbers fill in from events and store webhooks."
+        />
       ) : null}
       {data && !empty ? (
         <dl className="facts wide metrics-kpis" aria-label="Ads and revenue">
@@ -69,25 +84,19 @@ export function MetricsAdsPage() {
             <dd>{data.rewardsGranted}</dd>
           </div>
           <div>
-            <dt>Rewards / player</dt>
-            <dd>{num(data.rewardRatePerUser)}</dd>
-          </div>
-          <div>
-            <dt>Interstitials</dt>
-            <dd>{data.interstitialImpressions}</dd>
-          </div>
-          <div>
             <dt>Interstitials / session</dt>
             <dd>{num(data.interstitialPerSession)}</dd>
           </div>
           <div>
-            <dt>Ad revenue / player</dt>
+            <dt>
+              Ad revenue / player <IosLimitedLabel />
+            </dt>
             <dd>
-                  {data.arpdauPending ? (
-                    <span className="collecting">Waiting on ad network reports</span>
-                  ) : (
-                    num(data.arpdau)
-                  )}
+              {data.arpdauPending ? (
+                <span className="collecting">Waiting on ad network reports</span>
+              ) : (
+                num(data.arpdau)
+              )}
             </dd>
           </div>
           <div>
@@ -102,12 +111,8 @@ export function MetricsAdsPage() {
             <dt>Buyer share</dt>
             <dd>{pct(data.payerShare)}</dd>
           </div>
-          <div>
-            <dt>Hours to first buy</dt>
-            <dd>{num(data.medianHoursToFirstPurchase)}</dd>
-          </div>
         </dl>
       ) : null}
-    </MetricsChrome>
+    </div>
   );
 }

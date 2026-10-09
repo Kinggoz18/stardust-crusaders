@@ -54,6 +54,7 @@ Requires staff session (cookie `stardust_staff` or `Authorization: Bearer`). In 
 | POST | `/admin/v1/accounts/:id/unban` | owner, support | audited |
 | POST | `/admin/v1/accounts/:id/games/:gameId/reset` | owner | backup row; audited |
 | GET | `/admin/v1/games` | all | registry |
+| GET | `/admin/v1/games/:gameId/players` | all | accounts with progress for that game |
 | GET | `/admin/v1/metrics` | all | Legacy summary: DAU/WAU/MAU + real retention |
 | GET | `/admin/v1/metrics/overview` | all | Key numbers + series (`from`,`to`,`gameId?`,`platform?`) |
 | GET | `/admin/v1/metrics/retention` | all | Cohort table D1/D7/D30 |

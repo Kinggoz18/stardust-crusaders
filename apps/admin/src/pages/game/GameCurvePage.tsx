@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { pct } from "../../lib/metrics-filters";
-import { useMetricsFilters } from "../../hooks/useMetricsFilters";
-import { MetricsChrome } from "../../components/metrics/MetricsChrome";
+import { useGameId, useGameMetricsFilters } from "../../hooks/useGameDashboard";
+import { gamePath } from "../../lib/games";
+import { GameFilters } from "../../components/game/GameFilters";
 import { EmptyState, ErrorState, SkeletonList } from "../../components/States";
 
-export function MetricsDifficultyPage() {
-  const { filters, setFilters, query } = useMetricsFilters();
+export function GameCurvePage() {
+  const gameId = useGameId();
+  const { filters, setFilters, query } = useGameMetricsFilters(gameId);
   const [data, setData] = useState<Awaited<ReturnType<typeof api.metricsDifficulty>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (gameId !== "one-spark") return;
     let cancelled = false;
     setData(null);
     setError(null);
-    if (!filters.gameId) return;
     void api
       .metricsDifficulty(query)
       .then((d) => {
@@ -26,22 +29,26 @@ export function MetricsDifficultyPage() {
     return () => {
       cancelled = true;
     };
-  }, [query, filters.gameId]);
+  }, [query, gameId]);
+
+  if (gameId !== "one-spark") {
+    return <Navigate to={gamePath(gameId)} replace />;
+  }
 
   return (
-    <MetricsChrome
-      title="Difficulty health"
-      blurb="Win rate against the designed band for each level."
-      filters={filters}
-      onChange={setFilters}
-    >
-      {!filters.gameId ? (
-        <EmptyState title="Pick a game" body="One Spark has seeded bands for levels 1–40." />
-      ) : null}
-      {filters.gameId && error ? <ErrorState message={error} /> : null}
-      {filters.gameId && !error && !data ? <SkeletonList rows={4} /> : null}
-      {filters.gameId && data && data.levels.length === 0 ? (
-        <EmptyState title="No difficulty data yet" body="Play through levels to compare against the curve." />
+    <div className="game-section">
+      <h2 className="section-title">Level curve</h2>
+      <p className="metrics-caption">
+        Win rate against the designed band for One Spark levels (including 28+).
+      </p>
+      <GameFilters filters={filters} onChange={setFilters} />
+      {error ? <ErrorState message={error} /> : null}
+      {!error && !data ? <SkeletonList rows={4} /> : null}
+      {data && data.levels.length === 0 ? (
+        <EmptyState
+          title="No difficulty data yet"
+          body="Play through levels to compare against the curve."
+        />
       ) : null}
       {data && data.levels.length > 0 ? (
         <div className="table-wrap" tabIndex={0}>
@@ -67,15 +74,13 @@ export function MetricsDifficultyPage() {
                       ? "—"
                       : `${pct(l.bandMin)}–${pct(l.bandMax)}`}
                   </td>
-                  <td>
-                    {l.inBand == null ? "—" : l.inBand ? "Yes" : "Outside"}
-                  </td>
+                  <td>{l.inBand == null ? "—" : l.inBand ? "Yes" : "Outside"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : null}
-    </MetricsChrome>
+    </div>
   );
 }
