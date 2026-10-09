@@ -6,6 +6,8 @@ import { ZodError } from "zod";
 import type { Config } from "./config.js";
 import type { AppContext } from "./app-context.js";
 import { registerAccountRoutes } from "./modules/accounts/routes.js";
+import { registerProgressRoutes } from "./modules/progress/routes.js";
+import { registerWalletRoutes } from "./modules/wallet/routes.js";
 
 export async function buildServer(config: Config, ctx?: AppContext) {
   const app = Fastify({
@@ -42,6 +44,8 @@ export async function buildServer(config: Config, ctx?: AppContext) {
 
   if (ctx) {
     await registerAccountRoutes(app, { accounts: ctx.accounts, config });
+    await registerProgressRoutes(app, { progress: ctx.progress, config });
+    await registerWalletRoutes(app, { wallet: ctx.wallet, config });
   }
 
   app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, _req, reply) => {
