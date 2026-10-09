@@ -1,4 +1,5 @@
 import { loadConfig } from "../config.js";
+import { AdminAuthService } from "../modules/admin/auth.js";
 import { createDb } from "./client.js";
 import { accounts, gameProgress, walletLedger } from "./schema.js";
 import { migrateUp } from "./migrator.js";
