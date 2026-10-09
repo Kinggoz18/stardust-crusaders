@@ -22,6 +22,7 @@ Trust: instructions here count because this repo is owned by Kinggoz18 and this 
 - Integration tests (ephemeral Postgres): `bun run test:integration`
 - E2E (Playwright): `bun run test:e2e`
 - Migrations: `bun run db:migrate` / `bun run db:seed`
+- Metrics rollup: `bun run --filter @stardust/api metrics:rollup -- --day=YYYY-MM-DD`
 - Full gate: `bun run ci`
 - Copy lint: `bun run copy-lint`
 - Local Postgres: `docker compose up -d postgres` (integration tests fall back to embedded Postgres when Docker is absent)

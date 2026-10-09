@@ -10,11 +10,13 @@ import {
   walletLedger,
 } from "../../db/schema.js";
 import type { AdminAuthService, StaffContext } from "./auth.js";
+import type { MetricsService } from "../metrics/service.js";
 
 export class AdminService {
   constructor(
     private readonly db: Db["db"],
     private readonly auth: AdminAuthService,
+    private readonly metricsService?: MetricsService,
   ) {}
 
   async searchAccounts(staff: StaffContext, q: string, cursor?: string, limit = 20) {
@@ -126,6 +128,9 @@ export class AdminService {
   }
 
   async metrics(staff: StaffContext) {
+    if (this.metricsService) {
+      return this.metricsService.legacySummary(staff);
+    }
     this.auth.requireRole(staff, ["owner", "support", "viewer"]);
     const [{ count: newAccounts }] = await this.db
       .select({ count: sql<number>`count(*)::int` })
@@ -146,9 +151,8 @@ export class AdminService {
       newAccounts24h: newAccounts ?? 0,
       dau: dau ?? 0,
       wau: wau ?? 0,
-      // Retention D1/D7 from events — approximate stub until volume exists.
-      retention: { d1: null, d7: null },
-      levelsCleared: {},
+      mau: 0,
+      retention: { d1: null, d7: null, d30: null },
     };
   }
 

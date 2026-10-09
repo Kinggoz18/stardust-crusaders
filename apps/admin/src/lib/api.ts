@@ -91,8 +91,119 @@ export const api = {
       newAccounts24h: number;
       dau: number;
       wau: number;
-      retention: { d1: number | null; d7: number | null };
+      mau?: number;
+      retention: { d1: number | null; d7: number | null; d30?: number | null };
+      asOf?: string;
     }>("/admin/v1/metrics");
+  },
+  metricsOverview(query: string) {
+    return request<{
+      newAccounts: number;
+      dau: number;
+      wau: number;
+      mau: number;
+      stickiness: number | null;
+      sessions: number;
+      avgSessionSec: number | null;
+      retention: { d1: number | null; d7: number | null; d30: number | null };
+      series: Array<{ day: string; dau: number; newAccounts: number; sessions: number }>;
+    }>(`/admin/v1/metrics/overview?${query}`);
+  },
+  metricsRetention(query: string) {
+    return request<{
+      cohorts: Array<{
+        cohortDay: string;
+        cohortSize: number;
+        d1: number | null;
+        d7: number | null;
+        d30: number | null;
+      }>;
+    }>(`/admin/v1/metrics/retention?${query}`);
+  },
+  metricsFunnel(query: string) {
+    return request<{
+      gameId: string;
+      levels: Array<{
+        level: number;
+        starts: number;
+        wins: number;
+        fails: number;
+        quits: number;
+        avgMovesLeft: number | null;
+        stars: { s0: number; s1: number; s2: number; s3: number };
+      }>;
+    }>(`/admin/v1/metrics/funnel?${query}`);
+  },
+  metricsDifficulty(query: string) {
+    return request<{
+      gameId: string;
+      levels: Array<{
+        level: number;
+        starts: number;
+        wins: number;
+        winRate: number | null;
+        bandMin: number | null;
+        bandMax: number | null;
+        inBand: boolean | null;
+      }>;
+    }>(`/admin/v1/metrics/difficulty?${query}`);
+  },
+  metricsEconomy(query: string) {
+    return request<{
+      hintsCoins: number;
+      hintsAds: number;
+      coinIn: number;
+      coinOut: number;
+      balanceBuckets: Array<{ bucket: string; accounts: number }>;
+      byReason: Array<{ reason: string; deltaSum: number }>;
+    }>(`/admin/v1/metrics/economy?${query}`);
+  },
+  metricsAds(query: string) {
+    return request<{
+      rewardedOffers: number;
+      rewardedStarts: number;
+      rewardedCompletions: number;
+      completionRate: number | null;
+      rewardsGranted: number;
+      rewardRatePerUser: number | null;
+      interstitialImpressions: number;
+      interstitialPerSession: number | null;
+      arpdau: number | null;
+      arpdauPending: boolean;
+      iapPurchasers: number;
+      iapRevenueCents: number;
+      payerShare: number | null;
+      medianHoursToFirstPurchase: number | null;
+    }>(`/admin/v1/metrics/ads?${query}`);
+  },
+  metricsQuality(query: string) {
+    return request<{
+      accepted: number;
+      duplicates: number;
+      rejected: number;
+      consentOptOuts: number;
+      dedupeRate: number | null;
+      series: Array<{
+        day: string;
+        accepted: number;
+        duplicates: number;
+        rejected: number;
+        consentOptOuts: number;
+      }>;
+    }>(`/admin/v1/metrics/quality?${query}`);
+  },
+  metricsBorrowedTime(query: string) {
+    return request<{
+      eras: Array<{
+        era: string;
+        reachers: number;
+        avgDebt: number | null;
+        avgBuildings: number | null;
+      }>;
+      buildingsPlaced: number;
+      avgSessionSec: number | null;
+      sessions: number;
+    }>(`/admin/v1/metrics/borrowed-time?${query}`);
   },
   games() {
     return request<{

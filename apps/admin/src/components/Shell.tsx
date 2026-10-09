@@ -67,7 +67,12 @@ export function Shell() {
 
         <nav className="nav-desktop" aria-label="Studio">
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? "active" : undefined)}>
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.to !== "/metrics"}
+              className={({ isActive }) => (isActive ? "active" : undefined)}
+            >
               {l.label}
             </NavLink>
           ))}
@@ -99,7 +104,12 @@ export function Shell() {
       >
         <nav aria-label="Studio">
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? "active" : undefined)}>
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.to !== "/metrics"}
+              className={({ isActive }) => (isActive ? "active" : undefined)}
+            >
               {l.label}
             </NavLink>
           ))}
