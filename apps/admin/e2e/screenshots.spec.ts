@@ -269,6 +269,72 @@ test.describe("admin screenshots", () => {
     await assertNoHorizontalScroll(page);
   });
 
+  test("player profile shows plain game names and block confirm", async ({ page }) => {
+    await asStaff(page);
+    await page.route("**/api/admin/v1/**", async (route) => {
+      const url = route.request().url();
+      if (url.includes("/ban")) {
+        await route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) });
+        return;
+      }
+      if (url.includes("/accounts/")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            account: {
+              id: "11111111-1111-1111-1111-111111111111",
+              deviceId: "demo-device",
+              email: null,
+              platform: "android",
+              bannedAt: null,
+              banReason: null,
+              createdAt: "2026-10-01T12:00:00.000Z",
+            },
+            progress: [
+              {
+                gameId: "one-spark",
+                revision: 2,
+                document: { stars: { "1": [true, false, false] }, album: {} },
+              },
+              {
+                gameId: "loom-rush",
+                revision: 1,
+                document: { _draft: true, levelReached: 2, stars: {}, wardrobe: [], coins: 0, boosters: {}, tutorialDone: false },
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, body: "{}" });
+    });
+
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto("/accounts/11111111-1111-1111-1111-111111111111");
+    await expect(page.getByRole("heading", { name: "Player profile" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "One Spark" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Loom Rush \(draft\)/ })).toBeVisible();
+    await expect(page.getByText("one-spark")).toHaveCount(0);
+    await expect(page.getByText(/save 2/i)).toHaveCount(0);
+
+    const block = page.getByRole("button", { name: "Block player" });
+    await expect(block).toHaveClass(/danger/);
+    await block.click();
+    const dialog = page.getByRole("alertdialog", { name: "Block this player?" });
+    await expect(dialog).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "account-block-confirm-768.png"),
+      fullPage: true,
+    });
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(block).toBeFocused();
+    await block.click();
+    await dialog.getByRole("button", { name: "Block player" }).click();
+    await expect(dialog).toBeHidden();
+  });
+
   test("no horizontal page scroll at 360 on every route", async ({ page }) => {
     await asStaff(page);
     await page.setViewportSize({ width: 360, height: 900 });
