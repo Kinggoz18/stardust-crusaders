@@ -481,7 +481,7 @@ test.describe("admin screenshots", () => {
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/metrics");
-      await expect(page.getByText("Daily players")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Daily players" })).toBeVisible();
       await settle(page);
       await assertNoHorizontalScroll(page);
       await page.screenshot({ path: path.join(outDir, `metrics-success-${width}.png`), fullPage: true });
