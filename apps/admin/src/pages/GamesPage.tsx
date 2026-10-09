@@ -2,8 +2,15 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { ErrorState, SkeletonList } from "../components/States";
 
+type GameRow = {
+  id: string;
+  name: string;
+  draft: boolean;
+  summary: string;
+};
+
 export function GamesPage() {
-  const [games, setGames] = useState<Array<{ id: string; name: string }> | null>(null);
+  const [games, setGames] = useState<GameRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,8 +31,13 @@ export function GamesPage() {
       <ul className="game-list">
         {games?.map((g) => (
           <li key={g.id}>
-            <h2>{g.name}</h2>
-            <p>Cloud save and wallet ready.</p>
+            <div className="game-card-head">
+              <h2>{g.name}</h2>
+              <span className={`badge ${g.draft ? "draft" : "live"}`}>
+                {g.draft ? "Draft" : "Live"}
+              </span>
+            </div>
+            <p>{g.summary}</p>
           </li>
         ))}
       </ul>

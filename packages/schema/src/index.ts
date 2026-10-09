@@ -92,6 +92,8 @@ export {
   staffRoleSchema,
   staffLoginRequestSchema,
   staffLoginResponseSchema,
+  inviteStaffRequestSchema,
+  staffListItemSchema,
   auditActionSchema,
   auditEntrySchema,
   type StaffRole,

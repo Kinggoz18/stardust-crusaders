@@ -74,7 +74,9 @@ export const api = {
     }>("/admin/v1/metrics");
   },
   games() {
-    return request<{ games: Array<{ id: string; name: string }> }>("/admin/v1/games");
+    return request<{
+      games: Array<{ id: string; name: string; draft: boolean; summary: string }>;
+    }>("/admin/v1/games");
   },
   audit() {
     return request<{
@@ -86,6 +88,25 @@ export const api = {
         createdAt: string;
       }>;
     }>("/admin/v1/audit");
+  },
+  staff() {
+    return request<{
+      staff: Array<{
+        id: string;
+        email: string;
+        role: string;
+        createdAt: string;
+        disabledAt: string | null;
+      }>;
+    }>("/admin/v1/staff");
+  },
+  inviteStaff(body: { email: string; role: string; password: string }) {
+    return request<{
+      id: string;
+      email: string;
+      role: string;
+      totpSecret: string;
+    }>("/admin/v1/staff", { method: "POST", body: JSON.stringify(body) });
   },
   ban(id: string, reason: string) {
     return request(`/admin/v1/accounts/${id}/ban`, {

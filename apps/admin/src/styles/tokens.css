@@ -479,6 +479,116 @@ td {
   margin: 0;
 }
 
+.section-title {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-lg);
+}
+
+.chart-list {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.chart-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.chart-track {
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--color-skeleton);
+  overflow: hidden;
+}
+
+.chart-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #085858, #c45c26);
+  border-radius: 999px;
+}
+
+.collecting {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.game-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.game-card-head h2 {
+  margin: 0;
+}
+
+.activity-list,
+.staff-list {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.activity-item,
+.staff-item {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.activity-title,
+.staff-email {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+
+.activity-meta,
+.staff-meta {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.invite-form {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}
+
+.invite-form h2 {
+  margin: 0;
+}
+
+.invite-form select {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  background: transparent;
+  color: inherit;
+}
+
+.form-success {
+  margin: 0;
+  color: var(--color-accent);
+}
+
 @media (max-width: 900px) {
   .nav-desktop,
   .sign-out-desktop {

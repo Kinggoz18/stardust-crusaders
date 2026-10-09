@@ -15,6 +15,21 @@ export const staffLoginResponseSchema = z.object({
   expiresAt: z.string().datetime(),
 });
 
+export const inviteStaffRequestSchema = z.object({
+  email: z.string().email(),
+  role: staffRoleSchema,
+  /** Temporary password the invitee will change later. */
+  password: z.string().min(10).max(128),
+});
+
+export const staffListItemSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: staffRoleSchema,
+  createdAt: z.string().datetime(),
+  disabledAt: z.string().datetime().nullable(),
+});
+
 export const auditActionSchema = z.enum([
   "read_account",
   "search_accounts",

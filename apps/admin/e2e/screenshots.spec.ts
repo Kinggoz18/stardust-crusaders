@@ -143,9 +143,41 @@ test.describe("admin screenshots", () => {
           status: 200,
           body: JSON.stringify({
             games: [
-              { id: "one-spark", name: "One Spark" },
-              { id: "loom-rush", name: "Loom Rush" },
-              { id: "borrowed-time", name: "Borrowed Time" },
+              {
+                id: "one-spark",
+                name: "One Spark",
+                draft: false,
+                summary: "Live fireworks puzzle. Stars, album and daily streak are ready to inspect.",
+              },
+              {
+                id: "loom-rush",
+                name: "Loom Rush",
+                draft: true,
+                summary: "Draft tray-match save. Level, wardrobe and boosters may still change.",
+              },
+              {
+                id: "borrowed-time",
+                name: "Borrowed Time",
+                draft: true,
+                summary: "Draft island snapshot. Era, debt and chronicle fields are provisional.",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/staff")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            staff: [
+              {
+                id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                email: "owner@stardust.test",
+                role: "owner",
+                createdAt: "2026-10-01T12:00:00.000Z",
+                disabledAt: null,
+              },
             ],
           }),
         });
@@ -201,7 +233,7 @@ test.describe("admin screenshots", () => {
       for (const width of widths) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(route);
-        await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+        await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
         await settle(page);
         await page.screenshot({
           path: path.join(outDir, `${slug}-${width}.png`),
@@ -259,11 +291,21 @@ test.describe("admin screenshots", () => {
           status: 200,
           body: JSON.stringify({
             games: [
-              { id: "one-spark", name: "One Spark" },
-              { id: "loom-rush", name: "Loom Rush" },
-              { id: "borrowed-time", name: "Borrowed Time" },
+              {
+                id: "one-spark",
+                name: "One Spark",
+                draft: false,
+                summary: "Live fireworks puzzle.",
+              },
             ],
           }),
+        });
+        return;
+      }
+      if (url.includes("/staff")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({ staff: [] }),
         });
         return;
       }

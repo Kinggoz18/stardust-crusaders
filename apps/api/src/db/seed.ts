@@ -111,7 +111,6 @@ for (const s of seeds) {
 }
 
 // Staff owner for local admin (TOTP secret printed once — test only).
-import { AdminAuthService } from "../modules/admin/auth.js";
 const adminAuth = new AdminAuthService(db);
 const existingStaff = await db.query.staffUsers.findFirst({
   where: (t, { eq }) => eq(t.email, "owner@stardust.local"),

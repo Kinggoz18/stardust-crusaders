@@ -187,4 +187,71 @@ describe("admin api", () => {
     expect(audit.statusCode).toBe(200);
     expect(audit.json().entries.length).toBeGreaterThan(0);
   });
+
+  test("owner can invite staff; support cannot", async () => {
+    const support = await harness.ctx.adminAuth.createStaff({
+      email: "support-invite@stardust.test",
+      password: "test-password-ok",
+      role: "support",
+    });
+    const owner = await harness.ctx.adminAuth.createStaff({
+      email: "owner-invite@stardust.test",
+      password: "test-password-ok",
+      role: "owner",
+    });
+
+    const supportLogin = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/auth/login",
+      payload: {
+        email: support.email,
+        password: "test-password-ok",
+        totpCode: totpCode(support.totpSecret),
+      },
+    });
+    const denied = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/staff",
+      headers: { authorization: `Bearer ${supportLogin.json().token}` },
+      payload: {
+        email: "newbie@stardust.test",
+        role: "viewer",
+        password: "temporary-pass",
+      },
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const ownerLogin = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/auth/login",
+      payload: {
+        email: owner.email,
+        password: "test-password-ok",
+        totpCode: totpCode(owner.totpSecret),
+      },
+    });
+    const invited = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/staff",
+      headers: { authorization: `Bearer ${ownerLogin.json().token}` },
+      payload: {
+        email: "newbie@stardust.test",
+        role: "viewer",
+        password: "temporary-pass",
+      },
+    });
+    expect(invited.statusCode).toBe(201);
+    expect(invited.json().email).toBe("newbie@stardust.test");
+    expect(invited.json().totpSecret).toBeTruthy();
+
+    const list = await harness.app.inject({
+      method: "GET",
+      url: "/admin/v1/staff",
+      headers: { authorization: `Bearer ${ownerLogin.json().token}` },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().staff.some((s: { email: string }) => s.email === "newbie@stardust.test")).toBe(
+      true,
+    );
+  });
 });

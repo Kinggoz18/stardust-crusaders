@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { gameIdSchema } from "@stardust/schema";
+import { GAME_ADMIN_META, GAME_IDS, gameIdSchema } from "@stardust/schema";
 import type { AdminAuthService } from "./auth.js";
 import type { AdminService } from "./service.js";
 import type { Config } from "../../config.js";
@@ -127,13 +127,42 @@ export async function registerAdminRoutes(
     const staff = await requireStaff(req, deps);
     if (!staff) return unauthorized(reply);
     return {
-      games: [
-        { id: "one-spark", name: "One Spark" },
-        { id: "loom-rush", name: "Loom Rush" },
-        { id: "borrowed-time", name: "Borrowed Time" },
-      ],
+      games: GAME_IDS.map((id) => {
+        const meta = GAME_ADMIN_META[id];
+        return {
+          id: meta.gameId,
+          name: meta.displayName,
+          draft: meta.draft,
+          summary: gameBlurb(id),
+        };
+      }),
     };
   });
+
+  app.get("/admin/v1/staff", async (req, reply) => {
+    const staff = await requireStaff(req, deps);
+    if (!staff) return unauthorized(reply);
+    const people = await deps.adminAuth.listStaff(staff);
+    return { staff: people };
+  });
+
+  app.post("/admin/v1/staff", async (req, reply) => {
+    const staff = await requireStaff(req, deps);
+    if (!staff) return unauthorized(reply);
+    const created = await deps.adminAuth.inviteStaff(staff, req.body);
+    return reply.status(201).send(created);
+  });
+}
+
+function gameBlurb(id: (typeof GAME_IDS)[number]): string {
+  switch (id) {
+    case "one-spark":
+      return "Live fireworks puzzle. Stars, album and daily streak are ready to inspect.";
+    case "loom-rush":
+      return "Draft tray-match save. Level, wardrobe and boosters may still change.";
+    case "borrowed-time":
+      return "Draft island snapshot. Era, debt and chronicle fields are provisional.";
+  }
 }
 
 async function requireStaff(

@@ -1,9 +1,15 @@
 import { and, eq, isNull } from "drizzle-orm";
 import * as OTPAuth from "otpauth";
-import { staffLoginRequestSchema, type StaffRole } from "@stardust/schema";
+import {
+  inviteStaffRequestSchema,
+  staffLoginRequestSchema,
+  type StaffRole,
+} from "@stardust/schema";
+import { desc } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import { adminAuditLog, staffSessions, staffUsers } from "../../db/schema.js";
 import { randomToken, sha256 } from "../../lib/crypto.js";
+
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 
 export type StaffContext = {
@@ -145,5 +151,51 @@ export class AdminAuthService {
       err.code = "forbidden";
       throw err;
     }
+  }
+
+  async listStaff(staff: StaffContext) {
+    this.requireRole(staff, ["owner", "support"]);
+    const rows = await this.db.query.staffUsers.findMany({
+      orderBy: [desc(staffUsers.createdAt)],
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      email: r.email,
+      role: r.role as StaffRole,
+      createdAt: r.createdAt.toISOString(),
+      disabledAt: r.disabledAt ? r.disabledAt.toISOString() : null,
+    }));
+  }
+
+  async inviteStaff(staff: StaffContext, raw: unknown) {
+    this.requireRole(staff, ["owner"]);
+    const body = inviteStaffRequestSchema.parse(raw);
+    const existing = await this.db.query.staffUsers.findFirst({
+      where: eq(staffUsers.email, body.email.toLowerCase()),
+    });
+    if (existing) {
+      const err = new Error("That person already has access.") as Error & {
+        statusCode: number;
+        code: string;
+      };
+      err.statusCode = 409;
+      err.code = "already_exists";
+      throw err;
+    }
+    const created = await this.createStaff({
+      email: body.email,
+      password: body.password,
+      role: body.role,
+    });
+    await this.audit(staff.staffId, "staff_create", "staff", created.id, {
+      email: created.email,
+      role: created.role,
+    });
+    return {
+      id: created.id,
+      email: created.email,
+      role: created.role,
+      totpSecret: created.totpSecret,
+    };
   }
 }
