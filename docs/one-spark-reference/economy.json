@@ -1,0 +1,26 @@
+{
+  "_doc": "All coin numbers in one place. See src/game/economy.ts and tests/economy.test.ts (Japan 1-7 simulation).",
+  "firstClear": {
+    "base": 5,
+    "perExtraStar": 1
+  },
+  "replay": 0,
+  "daily": {
+    "base": 12,
+    "perStreakDay": 2,
+    "streakCap": 7
+  },
+  "extraMoves": {
+    "moves": 5,
+    "prices": [
+      20,
+      40,
+      60
+    ],
+    "stepAfter": 20
+  },
+  "hints": {
+    "costFactor": 0.6,
+    "showMs": 3000
+  }
+}
