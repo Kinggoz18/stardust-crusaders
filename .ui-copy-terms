@@ -1,0 +1,18 @@
+# Repo override for check-ui-copy.sh
+\bAPI\b
+\bendpoint\b
+\bUUID\b
+\bstatus code\b
+\blegacy\b
+\bMVP\b
+\bPaystack\b
+\bStripe\b
+\bRevenueCat\b
+\bAdMob\b
+\bAppLovin\b
+\bPostgres\b
+\bDrizzle\b
+\bFastify\b
+\bJWT\b
+\bTOTP\b
+Error [0-9]{3}

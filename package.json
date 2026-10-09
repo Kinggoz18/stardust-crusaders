@@ -1,0 +1,25 @@
+{
+  "name": "stardust-crusaders",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "bun run --filter '@stardust/api' dev & bun run --filter '@stardust/admin' dev",
+    "dev:api": "bun run --filter '@stardust/api' dev",
+    "dev:admin": "bun run --filter '@stardust/admin' dev",
+    "build": "bun run --filter '@stardust/schema' build && bun run --filter '@stardust/api' build && bun run --filter '@stardust/admin' build",
+    "test": "bun run --filter '*' test",
+    "test:integration": "bun run --filter '@stardust/api' test:integration",
+    "test:e2e": "bun run --filter '@stardust/admin' test:e2e",
+    "lint": "bun run --filter '*' lint",
+    "typecheck": "bun run --filter '*' typecheck",
+    "ci": "bash scripts/ci.sh",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "bun run --filter '@stardust/api' db:migrate",
+    "db:seed": "bun run --filter '@stardust/api' db:seed",
+    "copy-lint": "bash scripts/check-ui-copy.sh apps/admin"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

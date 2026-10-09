@@ -7,3 +7,10 @@ dist/
 .wrangler/
 *.log
 .DS_Store
+playwright-report/
+test-results/
+*.agent.log
+apps/api/.embedded-pg/
+coverage/
+bun.lockb
+.pending-review

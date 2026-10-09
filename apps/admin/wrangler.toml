@@ -1,0 +1,3 @@
+name = "stardust-admin"
+compatibility_date = "2025-03-01"
+pages_build_output_dir = "dist"

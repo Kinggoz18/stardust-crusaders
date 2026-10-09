@@ -1,0 +1,23 @@
+# Banned terms in user-visible copy (case-insensitive).
+\bAPI\b
+\bendpoint\b
+\bUUID\b
+\bstatus code\b
+\bHTTP\b
+\blegacy\b
+\bv2\b
+\bMVP\b
+\bPaystack\b
+\bStripe\b
+\bRevenueCat\b
+\bAdMob\b
+\bAppLovin\b
+\bPostgres\b
+\bDrizzle\b
+\bFastify\b
+\bJWT\b
+\bTOTP\b
+\bCSRF\b
+/admin/v1
+/v1/
+Error [0-9]{3}

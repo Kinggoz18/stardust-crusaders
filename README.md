@@ -1,9 +1,21 @@
 # Stardust Crusaders platform
 
-Backend API and admin dashboard for the Stardust Crusaders games: One Spark, Loom Rush and Borrowed Time.
+Backend API and admin dashboard for One Spark, Loom Rush and Borrowed Time.
 
-- `apps/api`: Bun + Fastify API for the VPS
-- `apps/admin`: admin dashboard on Cloudflare Pages (edge runtime)
-- `packages/schema`: shared schemas
+## Apps
+- `apps/api` — Bun + Fastify API (VPS / Docker)
+- `apps/admin` — Vite + React admin on Cloudflare Pages (edge)
+- `packages/schema` — shared zod schemas
 
-Start with `docs/BRIEF.md`.
+## Quick start
+```bash
+bun install
+cp .env.example .env
+docker compose up -d postgres   # optional; tests can use embedded Postgres
+bun run db:migrate && bun run db:seed
+bun run dev:api    # :3000
+bun run dev:admin  # :5173
+bun run ci
+```
+
+See `docs/BRIEF.md` and `AGENTS.md`.

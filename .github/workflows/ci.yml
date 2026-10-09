@@ -1,0 +1,44 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: stardust
+          POSTGRES_PASSWORD: stardust
+          POSTGRES_DB: stardust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stardust -d stardust"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgres://stardust:stardust@localhost:5432/stardust
+      JWT_SECRET: ci-jwt-secret-change-me-32chars-min
+      REFRESH_TOKEN_SECRET: ci-refresh-secret-change-me-32chars
+      ADMIN_SESSION_SECRET: ci-admin-session-secret
+      API_BASE_URL: http://localhost:3000
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      ADMIN_PROXY_TOKEN: ci-admin-proxy-token
+      REVENUECAT_WEBHOOK_SECRET: ci-revenuecat-webhook-secret
+      AD_PROVIDER: none
+      AD_PROVIDER_SIGNING_SECRET: ci-ad-signing-secret
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run ci
