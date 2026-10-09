@@ -37,8 +37,15 @@ Requires staff session (cookie `stardust_staff` or `Authorization: Bearer`). In 
 
 | Method | Path | Roles | Notes |
 | --- | --- | --- | --- |
+| GET | `/admin/v1/auth/bootstrap-status` | — | `{ needsBootstrap }` |
+| POST | `/admin/v1/auth/bootstrap` | — | one-time master key + email + password → owner + TOTP secret |
+| POST | `/admin/v1/auth/accept-invite` | — | invite token + password → staff + TOTP secret |
 | POST | `/admin/v1/auth/login` | — | email + password + TOTP |
 | POST | `/admin/v1/auth/logout` | staff | |
+| GET | `/admin/v1/staff` | owner, support | |
+| GET | `/admin/v1/staff/invites` | owner | |
+| POST | `/admin/v1/staff/invites` | owner | returns one-time `inviteToken` |
+| POST | `/admin/v1/staff/invites/:id/revoke` | owner | |
 | GET | `/admin/v1/accounts?q=&cursor=` | all | search; audited |
 | GET | `/admin/v1/accounts/:id` | all | detail + progress; audited |
 | GET | `/admin/v1/accounts/:id/wallet` | all | audited |

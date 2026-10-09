@@ -14,7 +14,15 @@ bun run dev:admin  # :5173
 bun run ci
 ```
 
-Seed creates fake player devices (`fake-seed-*`) and a staff user `owner@stardust.local` (password printed by seed; TOTP secret printed once).
+Seed creates fake player devices (`fake-seed-*`) and a staff user `owner@stardust.local` (password printed by seed; TOTP secret printed once). Seed also marks the master-key bootstrap as used.
+
+## First admin (empty database)
+
+1. Set `ADMIN_MASTER_KEY` (≥32 chars) in the API env. Never commit the value.
+2. Open the admin app → **Set up the master admin** (`/setup`) when no staff exist.
+3. Enter the setup key, your email, and a password. Save the authenticator secret shown once, then sign in with email + password + TOTP.
+4. **Remove `ADMIN_MASTER_KEY` from the environment** (API warns on startup if it is still set after setup).
+5. Invite teammates from **Staff**: choose email + role; copy the one-time invite code (or `/invite?token=…`) and send it yourself. Invitees set a password and enrol TOTP. Revoke unused invites from the same page.
 
 ## API deploy files (do not deploy from bots)
 

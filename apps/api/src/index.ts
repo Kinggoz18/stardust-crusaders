@@ -8,6 +8,12 @@ const ctx = createAppContext(config);
 await migrateUp(ctx.sql);
 const app = await buildServer(config, ctx);
 
+if (await ctx.adminAuth.shouldWarnRemoveMasterKey()) {
+  app.log.warn(
+    "ADMIN_MASTER_KEY is still set but studio setup is finished; remove it from the environment",
+  );
+}
+
 const shutdown = async (signal: string) => {
   app.log.info({ signal }, "shutting down");
   await app.close();

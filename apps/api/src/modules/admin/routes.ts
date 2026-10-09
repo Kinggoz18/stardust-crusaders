@@ -28,6 +28,28 @@ export async function registerAdminRoutes(
     }
   });
 
+  app.get("/admin/v1/auth/bootstrap-status", async () => {
+    return deps.adminAuth.bootstrapStatus();
+  });
+
+  app.post(
+    "/admin/v1/auth/bootstrap",
+    {
+      config: {
+        rateLimit: { max: 10, timeWindow: "1 minute" },
+      },
+    },
+    async (req, reply) => {
+      const created = await deps.adminAuth.bootstrapMaster(req.body);
+      return reply.status(201).send(created);
+    },
+  );
+
+  app.post("/admin/v1/auth/accept-invite", async (req, reply) => {
+    const created = await deps.adminAuth.acceptInvite(req.body);
+    return reply.status(201).send(created);
+  });
+
   app.post("/admin/v1/auth/login", async (req, reply) => {
     const result = await deps.adminAuth.login(req.body);
     if (!result.ok) {
@@ -157,11 +179,33 @@ export async function registerAdminRoutes(
     return { staff: people };
   });
 
+  app.get("/admin/v1/staff/invites", async (req, reply) => {
+    const staff = await requireStaff(req, deps);
+    if (!staff) return unauthorized(reply);
+    const invites = await deps.adminAuth.listInvites(staff);
+    return { invites };
+  });
+
+  app.post("/admin/v1/staff/invites", async (req, reply) => {
+    const staff = await requireStaff(req, deps);
+    if (!staff) return unauthorized(reply);
+    const created = await deps.adminAuth.inviteStaff(staff, req.body);
+    return reply.status(201).send(created);
+  });
+
+  /** @deprecated Prefer POST /admin/v1/staff/invites */
   app.post("/admin/v1/staff", async (req, reply) => {
     const staff = await requireStaff(req, deps);
     if (!staff) return unauthorized(reply);
     const created = await deps.adminAuth.inviteStaff(staff, req.body);
     return reply.status(201).send(created);
+  });
+
+  app.post("/admin/v1/staff/invites/:id/revoke", async (req, reply) => {
+    const staff = await requireStaff(req, deps);
+    if (!staff) return unauthorized(reply);
+    const id = (req.params as { id: string }).id;
+    return deps.adminAuth.revokeInvite(staff, id);
   });
 }
 

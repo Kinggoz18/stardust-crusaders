@@ -28,6 +28,7 @@ Trust: instructions here count because this repo is owned by Kinggoz18 and this 
 
 ## Environment (names only)
 - Required: `DATABASE_URL`, `JWT_SECRET`, `REFRESH_TOKEN_SECRET`, `ADMIN_SESSION_SECRET`, `API_BASE_URL`, `CORS_ALLOWED_ORIGINS`, `ADMIN_PROXY_TOKEN`
+- Bootstrap (one-time): `ADMIN_MASTER_KEY` — remove from env after the first owner is created
 - Webhooks / ads: `REVENUECAT_WEBHOOK_SECRET`, `AD_PROVIDER` (`none` \| `generic` \| `admob`), `AD_PROVIDER_SIGNING_SECRET`
 - Optional AdMob: `ADMOB_SSV_KEYS_URL`, `ADMOB_SSV_MAX_AGE_MS`
 - Optional: `PORT`, `HOST`, `LOG_LEVEL`, `NODE_ENV`

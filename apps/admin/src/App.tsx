@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { Shell } from "./components/Shell";
 import { LoginPage } from "./pages/LoginPage";
+import { SetupPage } from "./pages/SetupPage";
+import { AcceptInvitePage } from "./pages/AcceptInvitePage";
 import { AccountsPage } from "./pages/AccountsPage";
 import { AccountDetailPage } from "./pages/AccountDetailPage";
 import { AccountGamePage } from "./pages/AccountGamePage";
@@ -22,6 +24,8 @@ export function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/setup" element={<SetupPage />} />
+        <Route path="/invite" element={<AcceptInvitePage />} />
         <Route
           element={
             <RequireAuth>

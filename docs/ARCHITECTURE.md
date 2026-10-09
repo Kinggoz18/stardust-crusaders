@@ -32,7 +32,7 @@ Staff browser ──► apps/admin (Pages SPA)
 - **telemetry_events** — deduped by event id; consent-gated
 - **ad_reward_transactions** / **iap_webhook_events** — idempotent provider callbacks
 - **ad_frequency_caps** — per-game (and optional per-account) interstitial caps for games to read
-- **staff_users** / **staff_sessions** / **admin_audit_log** — argon2id + TOTP, short sessions, audited reads/writes
+- **staff_users** / **staff_sessions** / **staff_invites** / **admin_bootstrap** / **admin_audit_log** — argon2id + TOTP, one-time master-key bootstrap, invite tokens, audited reads/writes
 
 ## Module layout (`apps/api/src/modules`)
 

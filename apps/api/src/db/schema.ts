@@ -193,9 +193,7 @@ export const adminAuditLog = pgTable(
   "admin_audit_log",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    staffId: uuid("staff_id")
-      .notNull()
-      .references(() => staffUsers.id, { onDelete: "cascade" }),
+    staffId: uuid("staff_id").references(() => staffUsers.id, { onDelete: "cascade" }),
     action: varchar("action", { length: 64 }).notNull(),
     targetType: varchar("target_type", { length: 64 }).notNull(),
     targetId: text("target_id"),
@@ -203,6 +201,39 @@ export const adminAuditLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("admin_audit_log_created_idx").on(t.createdAt)],
+);
+
+/** Singleton row: whether the env master key has been consumed. */
+export const adminBootstrap = pgTable("admin_bootstrap", {
+  id: integer("id").primaryKey().default(1),
+  masterKeyUsedAt: timestamp("master_key_used_at", { withTimezone: true }),
+  masterAdminId: uuid("master_admin_id").references(() => staffUsers.id, {
+    onDelete: "set null",
+  }),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const staffInvites = pgTable(
+  "staff_invites",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(),
+    role: staffRoleEnum("role").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => staffUsers.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("staff_invites_token_uidx").on(t.tokenHash),
+    index("staff_invites_email_idx").on(t.email),
+  ],
 );
 
 export const idempotencyKeys = pgTable(

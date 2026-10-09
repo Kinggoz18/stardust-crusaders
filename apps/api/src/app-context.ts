@@ -32,7 +32,7 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     keysUrl: config.ADMOB_SSV_KEYS_URL,
     maxAgeMs: config.ADMOB_SSV_MAX_AGE_MS,
   });
-  const adminAuth = new AdminAuthService(db);
+  const adminAuth = new AdminAuthService(db, config.ADMIN_MASTER_KEY);
   return {
     config,
     db,

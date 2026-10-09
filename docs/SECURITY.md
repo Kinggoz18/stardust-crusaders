@@ -13,8 +13,17 @@ Threat model and controls for the Stardust Crusaders platform. OWASP Top 10:2025
 
 1. **Game client → API:** untrusted. Validate every payload with zod. Never trust client coins or progress without sanity checks / ledger.
 2. **Pages Function → API:** trusted only with `x-admin-proxy-token`. Browser never holds that secret.
-3. **Webhooks → API:** trusted only after HMAC verification; fail closed.
+3. **Webhooks → API:** trusted only after HMAC / AdMob SSV verification; fail closed.
 4. **Staff browser → Pages:** session cookie HttpOnly/Secure/SameSite=Strict; CSRF header on mutating calls.
+
+## Admin bootstrap (master key)
+
+- First owner is created only when **no staff rows** exist and `admin_bootstrap.master_key_used_at` is null.
+- `ADMIN_MASTER_KEY` (env) is compared with a constant-time hash check. Failed tries increment a counter; after 5 failures the endpoint locks for 15 minutes. Rate-limited separately.
+- On success, the used flag and owner row are written in the **same transaction** (advisory lock). The key is then useless even if it remains in the env.
+- API startup logs a **warning** (never the key value) when the key is still set after bootstrap. Remove it from the environment.
+- Never return or log the master key. Screenshots must not include it.
+- Further staff join via **one-time invite tokens** (hash stored, expiry, revoke). Owner shares the token out of band until a mailer exists.
 
 ## Controls by theme
 

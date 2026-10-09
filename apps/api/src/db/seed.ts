@@ -111,7 +111,7 @@ for (const s of seeds) {
 }
 
 // Staff owner for local admin (TOTP secret printed once — test only).
-const adminAuth = new AdminAuthService(db);
+const adminAuth = new AdminAuthService(db, config.ADMIN_MASTER_KEY);
 const existingStaff = await db.query.staffUsers.findFirst({
   where: (t, { eq }) => eq(t.email, "owner@stardust.local"),
 });
@@ -121,6 +121,7 @@ if (!existingStaff) {
     password: "local-dev-password",
     role: "owner",
   });
+  await adminAuth.markBootstrapUsed(staff.id);
   console.log("seed: staff owner@stardust.local / local-dev-password");
   console.log("seed: totp secret (test only):", staff.totpSecret);
 }

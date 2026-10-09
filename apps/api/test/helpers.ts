@@ -13,6 +13,7 @@ export function testConfig(databaseUrl: string) {
     API_BASE_URL: "http://localhost:3000",
     CORS_ALLOWED_ORIGINS: "http://localhost:5173",
     ADMIN_PROXY_TOKEN: "proxy-token-16chars",
+    ADMIN_MASTER_KEY: process.env.ADMIN_MASTER_KEY ?? "test-master-key-32-chars-minimum!",
     REVENUECAT_WEBHOOK_SECRET: "rc-secret-test",
     AD_PROVIDER: process.env.AD_PROVIDER ?? "none",
     AD_PROVIDER_SIGNING_SECRET: "ad-secret-test",

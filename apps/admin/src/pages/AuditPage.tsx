@@ -12,7 +12,12 @@ const ACTION_LABELS: Record<string, string> = {
   unban: "Restored a player",
   reset_progress: "Reset progress",
   staff_create: "Invited staff",
+  staff_invite: "Invited staff",
+  staff_invite_revoke: "Revoked an invite",
+  staff_invite_accept: "Joined via invite",
   staff_update: "Updated staff",
+  bootstrap: "Set up the studio",
+  bootstrap_denied: "Blocked a setup try",
   login: "Signed in",
   logout: "Signed out",
 };

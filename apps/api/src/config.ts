@@ -8,6 +8,8 @@ const configSchema = z.object({
   API_BASE_URL: z.string().url(),
   CORS_ALLOWED_ORIGINS: z.string().min(1),
   ADMIN_PROXY_TOKEN: z.string().min(16),
+  /** One-time studio setup key. Remove from env after the first owner is created. */
+  ADMIN_MASTER_KEY: z.string().min(32).optional(),
   REVENUECAT_WEBHOOK_SECRET: z.string().min(8),
   AD_PROVIDER: z.enum(["none", "generic", "admob"]).default("none"),
   AD_PROVIDER_SIGNING_SECRET: z.string().min(8),

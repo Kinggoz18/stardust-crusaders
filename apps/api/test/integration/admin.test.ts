@@ -225,12 +225,11 @@ describe("admin api", () => {
     });
     const denied = await harness.app.inject({
       method: "POST",
-      url: "/admin/v1/staff",
+      url: "/admin/v1/staff/invites",
       headers: { authorization: `Bearer ${supportLogin.json().token}` },
       payload: {
         email: "newbie@stardust.test",
         role: "viewer",
-        password: "temporary-pass",
       },
     });
     expect(denied.statusCode).toBe(403);
@@ -246,17 +245,28 @@ describe("admin api", () => {
     });
     const invited = await harness.app.inject({
       method: "POST",
-      url: "/admin/v1/staff",
+      url: "/admin/v1/staff/invites",
       headers: { authorization: `Bearer ${ownerLogin.json().token}` },
       payload: {
         email: "newbie@stardust.test",
         role: "viewer",
-        password: "temporary-pass",
       },
     });
     expect(invited.statusCode).toBe(201);
     expect(invited.json().email).toBe("newbie@stardust.test");
-    expect(invited.json().totpSecret).toBeTruthy();
+    expect(invited.json().inviteToken).toBeTruthy();
+    expect(invited.json().totpSecret).toBeUndefined();
+
+    const accepted = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/auth/accept-invite",
+      payload: {
+        token: invited.json().inviteToken,
+        password: "newbie-password-ok",
+      },
+    });
+    expect(accepted.statusCode).toBe(201);
+    expect(accepted.json().totpSecret).toBeTruthy();
 
     const list = await harness.app.inject({
       method: "GET",
@@ -267,5 +277,163 @@ describe("admin api", () => {
     expect(list.json().staff.some((s: { email: string }) => s.email === "newbie@stardust.test")).toBe(
       true,
     );
+
+    const loginNewbie = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/auth/login",
+      payload: {
+        email: "newbie@stardust.test",
+        password: "newbie-password-ok",
+        totpCode: totpCode(accepted.json().totpSecret),
+      },
+    });
+    expect(loginNewbie.statusCode).toBe(200);
+  });
+
+  test("bootstrap master key works once; race, lockout, invite expiry/revoke", async () => {
+    const local = await startTestApp();
+    const key = local.config.ADMIN_MASTER_KEY!;
+    try {
+      const status = await local.app.inject({
+        method: "GET",
+        url: "/admin/v1/auth/bootstrap-status",
+      });
+      expect(status.json().needsBootstrap).toBe(true);
+
+      const bad = await local.app.inject({
+        method: "POST",
+        url: "/admin/v1/auth/bootstrap",
+        payload: {
+          masterKey: "wrong-master-key-32-characters-xx",
+          email: "bad@stardust.test",
+          password: "bootstrap-password",
+        },
+      });
+      expect(bad.statusCode).toBe(401);
+      expect(JSON.stringify(bad.json())).not.toContain(key);
+
+      for (let i = 0; i < 4; i++) {
+        await local.app.inject({
+          method: "POST",
+          url: "/admin/v1/auth/bootstrap",
+          payload: {
+            masterKey: "wrong-master-key-32-characters-xx",
+            email: "bad@stardust.test",
+            password: "bootstrap-password",
+          },
+        });
+      }
+      const locked = await local.app.inject({
+        method: "POST",
+        url: "/admin/v1/auth/bootstrap",
+        payload: {
+          masterKey: key,
+          email: "locked@stardust.test",
+          password: "bootstrap-password",
+        },
+      });
+      expect(locked.statusCode).toBe(429);
+
+      // Fresh DB for race + success path.
+      await local.stop();
+      const raceApp = await startTestApp();
+      try {
+        const raceKey = raceApp.config.ADMIN_MASTER_KEY!;
+        const [a, b] = await Promise.all([
+          raceApp.app.inject({
+            method: "POST",
+            url: "/admin/v1/auth/bootstrap",
+            payload: {
+              masterKey: raceKey,
+              email: "race-a@stardust.test",
+              password: "bootstrap-password",
+            },
+          }),
+          raceApp.app.inject({
+            method: "POST",
+            url: "/admin/v1/auth/bootstrap",
+            payload: {
+              masterKey: raceKey,
+              email: "race-b@stardust.test",
+              password: "bootstrap-password",
+            },
+          }),
+        ]);
+        const codes = [a.statusCode, b.statusCode].sort();
+        expect(codes).toEqual([201, 409]);
+        const winner = a.statusCode === 201 ? a : b;
+        expect(winner.json().role).toBe("owner");
+        expect(winner.json().totpSecret).toBeTruthy();
+        expect(JSON.stringify(winner.json())).not.toContain(raceKey);
+
+        const second = await raceApp.app.inject({
+          method: "POST",
+          url: "/admin/v1/auth/bootstrap",
+          payload: {
+            masterKey: raceKey,
+            email: "again@stardust.test",
+            password: "bootstrap-password",
+          },
+        });
+        expect(second.statusCode).toBe(409);
+        expect(await raceApp.ctx.adminAuth.shouldWarnRemoveMasterKey()).toBe(true);
+
+        const ownerLogin = await raceApp.app.inject({
+          method: "POST",
+          url: "/admin/v1/auth/login",
+          payload: {
+            email: winner.json().email,
+            password: "bootstrap-password",
+            totpCode: totpCode(winner.json().totpSecret),
+          },
+        });
+        expect(ownerLogin.statusCode).toBe(200);
+        const token = ownerLogin.json().token as string;
+
+        const invite = await raceApp.app.inject({
+          method: "POST",
+          url: "/admin/v1/staff/invites",
+          headers: { authorization: `Bearer ${token}` },
+          payload: { email: "expiree@stardust.test", role: "support" },
+        });
+        expect(invite.statusCode).toBe(201);
+        const inviteToken = invite.json().inviteToken as string;
+        const inviteId = invite.json().id as string;
+
+        await raceApp.ctx.sql`
+          UPDATE staff_invites SET expires_at = now() - interval '1 minute' WHERE id = ${inviteId}
+        `;
+        const expired = await raceApp.app.inject({
+          method: "POST",
+          url: "/admin/v1/auth/accept-invite",
+          payload: { token: inviteToken, password: "invitee-password" },
+        });
+        expect(expired.statusCode).toBe(410);
+
+        const invite2 = await raceApp.app.inject({
+          method: "POST",
+          url: "/admin/v1/staff/invites",
+          headers: { authorization: `Bearer ${token}` },
+          payload: { email: "revokee@stardust.test", role: "viewer" },
+        });
+        const revokeToken = invite2.json().inviteToken as string;
+        await raceApp.app.inject({
+          method: "POST",
+          url: `/admin/v1/staff/invites/${invite2.json().id}/revoke`,
+          headers: { authorization: `Bearer ${token}` },
+        });
+        const revoked = await raceApp.app.inject({
+          method: "POST",
+          url: "/admin/v1/auth/accept-invite",
+          payload: { token: revokeToken, password: "invitee-password" },
+        });
+        expect(revoked.statusCode).toBe(410);
+      } finally {
+        await raceApp.stop();
+      }
+    } finally {
+      // local may already be stopped after the lockout section
+      await local.stop().catch(() => undefined);
+    }
   });
 });

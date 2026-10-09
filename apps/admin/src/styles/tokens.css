@@ -639,6 +639,36 @@ td {
   color: var(--color-accent);
 }
 
+.setup-code {
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+  font-size: var(--text-sm);
+  word-break: break-all;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: #085858;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .button-link {
+    background: #5ed0d0;
+    color: #042020;
+  }
+}
+
 @media (max-width: 900px) {
   .nav-desktop,
   .sign-out-desktop {

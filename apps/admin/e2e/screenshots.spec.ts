@@ -80,6 +80,12 @@ async function mockAccounts(page: Page, mode: "success" | "empty" | "error" | "l
 
 test.describe("admin screenshots", () => {
   test("login at breakpoints", async ({ page }) => {
+    await page.route("**/api/admin/v1/auth/bootstrap-status", async (route) => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({ needsBootstrap: false }),
+      });
+    });
     for (const width of widths) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/login");
@@ -91,6 +97,53 @@ test.describe("admin screenshots", () => {
       });
     }
     await axeOk(page);
+  });
+
+  test("master admin setup screens", async ({ page }) => {
+    await page.route("**/api/admin/v1/auth/bootstrap-status", async (route) => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({ needsBootstrap: true }),
+      });
+    });
+    await page.route("**/api/admin/v1/auth/bootstrap", async (route) => {
+      await route.fulfill({
+        status: 201,
+        body: JSON.stringify({
+          ok: true,
+          email: "owner@stardust.test",
+          role: "owner",
+          totpSecret: "SETUPTESTSECRET",
+          otpauthUrl: "otpauth://totp/Stardust:owner@stardust.test",
+        }),
+      });
+    });
+
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto("/login");
+    await expect(page.getByRole("link", { name: "Set up the master admin" })).toBeVisible();
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "login-bootstrap-link-768.png"), fullPage: true });
+
+    await page.goto("/setup");
+    await expect(page.getByRole("heading", { name: "Set up the master admin" })).toBeVisible();
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "setup-form-768.png"), fullPage: true });
+    await axeOk(page);
+
+    await page.getByLabel("Setup key").fill("x".repeat(32));
+    await page.getByLabel("Your work email").fill("owner@stardust.test");
+    await page.getByLabel("Choose a password").fill("local-dev-password");
+    await page.getByRole("button", { name: "Create owner" }).click();
+    await expect(page.getByRole("heading", { name: "Add your authenticator" })).toBeVisible();
+    await expect(page.getByText("SETUPTESTSECRET")).toBeVisible();
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "setup-totp-768.png"), fullPage: true });
+
+    await page.goto("/invite?token=demo-invite-token");
+    await expect(page.getByRole("heading", { name: "Join the studio" })).toBeVisible();
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "invite-accept-768.png"), fullPage: true });
   });
 
   test("accounts states", async ({ page }) => {
@@ -160,6 +213,25 @@ test.describe("admin screenshots", () => {
                 name: "Borrowed Time",
                 draft: true,
                 summary: "Draft island snapshot. Era, debt and chronicle fields are provisional.",
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/staff/invites")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            invites: [
+              {
+                id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                email: "newbie@stardust.test",
+                role: "viewer",
+                expiresAt: "2026-10-12T12:00:00.000Z",
+                revokedAt: null,
+                acceptedAt: null,
+                createdAt: "2026-10-09T12:00:00.000Z",
               },
             ],
           }),
@@ -480,10 +552,21 @@ test.describe("admin screenshots", () => {
         });
         return;
       }
+      if (url.includes("/staff/invites")) {
+        await route.fulfill({ status: 200, body: JSON.stringify({ invites: [] }) });
+        return;
+      }
       if (url.includes("/staff")) {
         await route.fulfill({
           status: 200,
           body: JSON.stringify({ staff: [] }),
+        });
+        return;
+      }
+      if (url.includes("/bootstrap-status")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({ needsBootstrap: false }),
         });
         return;
       }
@@ -539,6 +622,8 @@ test.describe("admin screenshots", () => {
 
     const routes = [
       "/login",
+      "/setup",
+      "/invite",
       "/accounts",
       "/games",
       "/metrics",

@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
@@ -8,6 +8,14 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [needsBootstrap, setNeedsBootstrap] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void api
+      .bootstrapStatus()
+      .then((s) => setNeedsBootstrap(s.needsBootstrap))
+      .catch(() => setNeedsBootstrap(false));
+  }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,6 +41,12 @@ export function LoginPage() {
     <main className="login">
       <h1>Stardust Crusaders</h1>
       <p>Sign in to manage your studio.</p>
+      {needsBootstrap ? (
+        <p className="lede">
+          First time here?{" "}
+          <Link to="/setup">Set up the master admin</Link>
+        </p>
+      ) : null}
       <form onSubmit={onSubmit} noValidate>
         <label htmlFor="email">Work email</label>
         <input id="email" name="email" type="email" autoComplete="username" required />

@@ -27,6 +27,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  bootstrapStatus() {
+    return request<{ needsBootstrap: boolean }>("/admin/v1/auth/bootstrap-status");
+  },
+  bootstrap(body: { masterKey: string; email: string; password: string }) {
+    return request<{
+      ok: true;
+      email: string;
+      role: "owner";
+      totpSecret: string;
+      otpauthUrl: string;
+    }>("/admin/v1/auth/bootstrap", { method: "POST", body: JSON.stringify(body) });
+  },
+  acceptInvite(body: { token: string; password: string }) {
+    return request<{
+      ok: true;
+      email: string;
+      role: string;
+      totpSecret: string;
+      otpauthUrl: string;
+    }>("/admin/v1/auth/accept-invite", { method: "POST", body: JSON.stringify(body) });
+  },
   login(body: { email: string; password: string; totpCode: string }) {
     return request<{ ok: true; role: string; expiresAt: string; token?: string }>(
       "/admin/v1/auth/login",
@@ -100,13 +121,33 @@ export const api = {
       }>;
     }>("/admin/v1/staff");
   },
-  inviteStaff(body: { email: string; role: string; password: string }) {
+  inviteStaff(body: { email: string; role: string }) {
     return request<{
       id: string;
       email: string;
       role: string;
-      totpSecret: string;
-    }>("/admin/v1/staff", { method: "POST", body: JSON.stringify(body) });
+      expiresAt: string;
+      inviteToken: string;
+    }>("/admin/v1/staff/invites", { method: "POST", body: JSON.stringify(body) });
+  },
+  staffInvites() {
+    return request<{
+      invites: Array<{
+        id: string;
+        email: string;
+        role: string;
+        expiresAt: string;
+        revokedAt: string | null;
+        acceptedAt: string | null;
+        createdAt: string;
+      }>;
+    }>("/admin/v1/staff/invites");
+  },
+  revokeInvite(id: string) {
+    return request<{ ok: true }>(`/admin/v1/staff/invites/${id}/revoke`, {
+      method: "POST",
+      body: "{}",
+    });
   },
   ban(id: string, reason: string) {
     return request(`/admin/v1/accounts/${id}/ban`, {

@@ -11,12 +11,23 @@ type StaffRow = {
   disabledAt: string | null;
 };
 
+type InviteRow = {
+  id: string;
+  email: string;
+  role: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  acceptedAt: string | null;
+  createdAt: string;
+};
+
 export function StaffSettingsPage() {
   const auth = useAuth();
   const [people, setPeople] = useState<StaffRow[] | null>(null);
+  const [invites, setInvites] = useState<InviteRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [inviteOk, setInviteOk] = useState<string | null>(null);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function load() {
@@ -24,6 +35,10 @@ export function StaffSettingsPage() {
     try {
       const data = await api.staff();
       setPeople(data.staff);
+      if (auth.role === "owner") {
+        const inv = await api.staffInvites();
+        setInvites(inv.invites);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load staff.");
     }
@@ -49,18 +64,15 @@ export function StaffSettingsPage() {
     e.preventDefault();
     if (auth.role !== "owner") return;
     setInviteError(null);
-    setInviteOk(null);
+    setInviteToken(null);
     setPending(true);
     const form = new FormData(e.currentTarget);
     try {
       const created = await api.inviteStaff({
         email: String(form.get("email") ?? ""),
         role: String(form.get("role") ?? "viewer"),
-        password: String(form.get("password") ?? ""),
       });
-      setInviteOk(
-        `Invite ready for ${created.email}. Share the password you chose and this authenticator key: ${created.totpSecret}`,
-      );
+      setInviteToken(created.inviteToken);
       e.currentTarget.reset();
       await load();
     } catch (err) {
@@ -98,32 +110,67 @@ export function StaffSettingsPage() {
       ) : null}
 
       {auth.role === "owner" ? (
-        <form className="invite-form" onSubmit={(e) => void onInvite(e)}>
-          <h2>Invite staff</h2>
-          <label htmlFor="email">Work email</label>
-          <input id="email" name="email" type="email" required autoComplete="off" />
-          <label htmlFor="role">Role</label>
-          <select id="role" name="role" defaultValue="viewer">
-            <option value="viewer">Viewer</option>
-            <option value="support">Support</option>
-            <option value="owner">Owner</option>
-          </select>
-          <label htmlFor="password">Temporary password</label>
-          <input id="password" name="password" type="text" minLength={10} required autoComplete="off" />
-          {inviteError ? (
-            <p className="form-error" role="alert">
-              {inviteError}
-            </p>
+        <>
+          <form className="invite-form" onSubmit={(e) => void onInvite(e)}>
+            <h2>Invite staff</h2>
+            <label htmlFor="email">Work email</label>
+            <input id="email" name="email" type="email" required autoComplete="off" />
+            <label htmlFor="role">Role</label>
+            <select id="role" name="role" defaultValue="viewer">
+              <option value="viewer">Viewer</option>
+              <option value="support">Support</option>
+              <option value="owner">Owner</option>
+            </select>
+            {inviteError ? (
+              <p className="form-error" role="alert">
+                {inviteError}
+              </p>
+            ) : null}
+            {inviteToken ? (
+              <p className="form-success" role="status">
+                Invite ready. Share this one-time code with them (also works in /invite?token=…):{" "}
+                <span className="setup-code">{inviteToken}</span>
+              </p>
+            ) : null}
+            <button type="submit" disabled={pending}>
+              {pending ? "Inviting…" : "Send invite"}
+            </button>
+          </form>
+
+          {invites && invites.length > 0 ? (
+            <>
+              <h2 className="section-title">Pending invites</h2>
+              <ul className="staff-list">
+                {invites.map((inv) => (
+                  <li key={inv.id} className="staff-item">
+                    <p className="staff-email">{inv.email}</p>
+                    <p className="staff-meta">
+                      {roleLabel(inv.role)}
+                      {inv.acceptedAt
+                        ? " · Joined"
+                        : inv.revokedAt
+                          ? " · Revoked"
+                          : ` · Expires ${new Date(inv.expiresAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}`}
+                    </p>
+                    {!inv.acceptedAt && !inv.revokedAt ? (
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() =>
+                          void api.revokeInvite(inv.id).then(() => load()).catch((err: Error) => {
+                            setInviteError(err.message);
+                          })
+                        }
+                      >
+                        Revoke
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : null}
-          {inviteOk ? (
-            <p className="form-success" role="status">
-              {inviteOk}
-            </p>
-          ) : null}
-          <button type="submit" disabled={pending}>
-            {pending ? "Inviting…" : "Send invite"}
-          </button>
-        </form>
+        </>
       ) : (
         <p className="lede">Only an owner can invite new staff.</p>
       )}
