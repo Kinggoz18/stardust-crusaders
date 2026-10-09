@@ -14,7 +14,7 @@ export function testConfig(databaseUrl: string) {
     CORS_ALLOWED_ORIGINS: "http://localhost:5173",
     ADMIN_PROXY_TOKEN: "proxy-token-16chars",
     REVENUECAT_WEBHOOK_SECRET: "rc-secret-test",
-    AD_PROVIDER: "none",
+    AD_PROVIDER: process.env.AD_PROVIDER ?? "none",
     AD_PROVIDER_SIGNING_SECRET: "ad-secret-test",
     NODE_ENV: "test",
     LOG_LEVEL: "error",
