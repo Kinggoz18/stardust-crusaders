@@ -24,6 +24,7 @@ describe("draft game schemas", () => {
 
   test("progressSchemaFor routes by game id", () => {
     expect(progressSchemaFor("one-spark").parse({ stars: {}, album: {} }).schemaVersion).toBe(1);
-    expect(progressSchemaFor("loom-rush").parse({})._draft).toBe(true);
+    const loom = loomRushProgressSchema.parse(progressSchemaFor("loom-rush").parse({}));
+    expect(loom._draft).toBe(true);
   });
 });
