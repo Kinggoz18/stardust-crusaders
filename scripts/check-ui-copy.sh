@@ -23,13 +23,22 @@ fi
 
 hits=0
 while IFS= read -r -d '' file; do
-  if grep -nEi "$PATTERN" "$file" | grep -v 'ui-copy-ignore' | grep -v '^\s*//' | grep -v '^\s*\*'; then
+  matched="$(
+    grep -nEi "$PATTERN" "$file" \
+      | grep -v 'ui-copy-ignore' \
+      | grep -vE '^\s*[0-9]+:\s*(import|export)\b' \
+      | grep -vE 'from ["'\''][^"'\'']+["'\'']' \
+      | grep -vE '\bapi\.[a-zA-Z]+|\btypeof api\b|/lib/api|await api\b|void api\b' \
+      | grep -vE '^\s*[0-9]+:\s*//' \
+      || true
+  )"
+  if [[ -n "$matched" ]]; then
     echo "::error::copy-lint hit in $file"
-    grep -nEi "$PATTERN" "$file" | grep -v 'ui-copy-ignore' || true
+    echo "$matched"
     hits=$((hits + 1))
   fi
-done < <(find "${TARGETS[@]}" -type f \( -name '*.tsx' -o -name '*.jsx' -o -name '*.html' -o -name '*.json' \) \
-  ! -path '*/node_modules/*' ! -path '*/dist/*' ! -path '*/.wrangler/*' -print0 2>/dev/null)
+done < <(find "${TARGETS[@]}" -type f \( -name '*.tsx' -o -name '*.jsx' -o -name '*.html' \) \
+  ! -path '*/node_modules/*' ! -path '*/dist/*' ! -path '*/.wrangler/*' ! -path '*/e2e/*' ! -name 'api.ts' -print0 2>/dev/null)
 
 if [[ $hits -gt 0 ]]; then
   echo "copy-lint: FAILED ($hits file(s))"

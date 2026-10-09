@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test.describe("login scaffold", () => {
+test.describe("login", () => {
   test("shows studio sign-in", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: "Stardust Crusaders" })).toBeVisible();
