@@ -23,6 +23,10 @@ Wire shape: `telemetryEventSchema` in `@stardust/schema`. Named events below hav
 | `ad_rewarded_start` | all | `{ placement?: string }` | Playback start |
 | `ad_rewarded_complete` | all | `{ placement?, rewardKind? }` | Finished (server SSV is authoritative for grants) |
 | `ad_interstitial_impression` | all | `{ placement?: string }` | Interstitial shown |
+| `house_ad_shown` | all | `{ houseAdId, promotedGame, placement? }` | Own-game playable impression |
+| `house_ad_started` | all | `{ houseAdId, promotedGame, placement? }` | Playable started |
+| `house_ad_completed` | all | `{ houseAdId, promotedGame, placement? }` | Playable finished |
+| `house_ad_clicked` | all | `{ houseAdId, promotedGame, placement? }` | Store-listing / install-intent click-through |
 | `iap_offer_seen` | all | `{ productId: string }` | Store offer shown |
 | `tier_reached` | borrowed-time | `{ era: string, debt?: int, buildings?: int }` | Era / island milestone |
 | `building_placed` | borrowed-time | `{ buildingId: string, tier?: string }` | Building built |
@@ -68,6 +72,7 @@ Definitions use **UTC calendar days** unless noted. Filters: `gameId`, `platform
 | Balance distribution | Snapshot buckets of current balances (from ledger) on rollup day | wallet | Full |
 | Rewarded ads | offers / starts / completions; completion rate; rewards granted per user (SSV + events) | events + `ad_reward_transactions` | Full (server SSV); fill-rate by advertising id omitted |
 | Interstitials / session | Impressions / sessions | events | Full |
+| House ads | shown / started / completed / clicked (store intent) for own-game playables | events (`house_ad_*`) | Full (first-party; no third-party creatives) |
 | ARPDAU | Ad revenue / DAU — **table ready** (`metrics_ad_revenue_daily`); ingestion from AdMob reports **later** | pending | **iOS-limited** (network reports; no IDFA join) |
 | IAP conversion | Distinct purchasers / DAU; revenue from RevenueCat webhook rows | `iap_webhook_events` | Full |
 | Payer share | Lifetime or period purchasers / active accounts | IAP + accounts | Full |
@@ -89,7 +94,8 @@ Definitions use **UTC calendar days** unless noted. Filters: `gameId`, `platform
 - `/metrics` — thin **studio** headlines + data health only
 - `/games` — studio headlines + entry to each title
 - `/games/:game` — per-game dashboard (overview, players, levels, coins, ads, events; One Spark: level curve + hints; Borrowed Time: eras & debt). Role-aware nav (e.g. Ads requires support+).
-- API under `/admin/v1/metrics/*` and `/admin/v1/games/:gameId/players`
+- `/games/:game/ads` — Controls (network enable/frequency/unit ids), House ads (global confirm + kill switch + registry), Results (metrics). Owner turns studio house ads on; support+ can edit controls and trip the kill switch.
+- API under `/admin/v1/metrics/*`, `/admin/v1/games/:gameId/players`, `/admin/v1/games/:gameId/ads/settings`, `/admin/v1/ads/house*`
 
 ## Client helper
 

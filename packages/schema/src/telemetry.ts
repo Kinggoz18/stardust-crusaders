@@ -37,5 +37,9 @@ export const FUNNEL_EVENT_NAMES = [
   "ad_rewarded_start",
   "ad_rewarded_complete",
   "ad_interstitial_impression",
+  "house_ad_shown",
+  "house_ad_started",
+  "house_ad_completed",
+  "house_ad_clicked",
   "install",
 ] as const;

@@ -5,8 +5,53 @@ import path from "node:path";
 const widths = [360, 768, 1280] as const;
 const outDir = path.resolve(
   process.cwd(),
-  "../../.artifacts/20261009-1255-game-dashboards/screenshots",
+  "../../.artifacts/20261009-1305-ad-controls/screenshots",
 );
+
+const adsSettingsBody = {
+  gameId: "one-spark",
+  interstitial: {
+    enabled: true,
+    minTransitions: 4,
+    maxTransitions: 6,
+    maxPerSession: 3,
+    unitId: "ca-app-pub-test/one-spark-interstitial",
+  },
+  rewarded: {
+    enabled: true,
+    maxPerSession: 20,
+    unitId: "ca-app-pub-test/one-spark-rewarded",
+  },
+  houseAdsGameEnabled: false,
+};
+
+const houseAdsBody = {
+  global: {
+    enabled: false,
+    killSwitch: false,
+    updatedAt: "2026-10-09T12:00:00.000Z",
+  },
+  games: [
+    { gameId: "one-spark", enabled: false },
+    { gameId: "loom-rush", enabled: false },
+    { gameId: "borrowed-time", enabled: false },
+  ],
+  items: [
+    {
+      id: "22222222-2222-2222-2222-222222222222",
+      promotedGame: "loom-rush",
+      creativeRef: "bundle://loom-rush-playable",
+      targetGames: ["one-spark", "borrowed-time"],
+      platform: null,
+      enabled: true,
+      maxPerSession: 1,
+      startsAt: null,
+      endsAt: null,
+      createdAt: "2026-10-09T12:00:00.000Z",
+      updatedAt: "2026-10-09T12:00:00.000Z",
+    },
+  ],
+};
 
 const overviewBody = {
   newAccounts: 3,
@@ -127,6 +172,18 @@ async function mockStudioApis(page: Page) {
           medianHoursToFirstPurchase: 12,
         }),
       });
+      return;
+    }
+    if (url.includes("/ads/settings")) {
+      await route.fulfill({ status: 200, body: JSON.stringify(adsSettingsBody) });
+      return;
+    }
+    if (url.includes("/ads/house/global") || url.endsWith("/ads/house") || url.includes("/ads/house?")) {
+      await route.fulfill({ status: 200, body: JSON.stringify(houseAdsBody) });
+      return;
+    }
+    if (url.includes("/ads/house")) {
+      await route.fulfill({ status: 200, body: JSON.stringify(houseAdsBody) });
       return;
     }
     if (url.includes("/metrics/borrowed-time")) {
@@ -482,6 +539,70 @@ test.describe("admin screenshots", () => {
     await axeOk(page);
   });
 
+  test("game ads controls and house ads at breakpoints", async ({ page }) => {
+    await asStaff(page);
+    await mockStudioApis(page);
+
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/games/one-spark/ads");
+      await expect(page.getByRole("heading", { name: "Ads", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Controls", pressed: true })).toBeVisible();
+      await expect(page.getByText("Interstitial")).toBeVisible();
+      await settle(page);
+      await assertNoHorizontalScroll(page);
+      await page.screenshot({
+        path: path.join(outDir, `game-ads-controls-${width}.png`),
+        fullPage: true,
+      });
+
+      await page.getByRole("button", { name: "House ads" }).click();
+      await expect(page.getByText("Studio switch")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Turn on for studio" })).toBeVisible();
+      await settle(page);
+      await assertNoHorizontalScroll(page);
+      await page.screenshot({
+        path: path.join(outDir, `game-ads-house-${width}.png`),
+        fullPage: true,
+      });
+    }
+
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto("/games/one-spark/ads");
+    await page.getByRole("button", { name: "House ads" }).click();
+    await page.getByRole("button", { name: "Turn on for studio" }).click();
+    const enableDialog = page.getByRole("alertdialog", {
+      name: "Turn on house ads for the studio?",
+    });
+    await expect(enableDialog).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "game-ads-house-enable-confirm-768.png"),
+      fullPage: true,
+    });
+    await page.keyboard.press("Escape");
+    await expect(enableDialog).toBeHidden();
+
+    await page.getByRole("button", { name: "Kill switch" }).click();
+    const killDialog = page.getByRole("alertdialog", { name: "Stop all house ads now?" });
+    await expect(killDialog).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "game-ads-house-kill-confirm-768.png"),
+      fullPage: true,
+    });
+    await page.keyboard.press("Escape");
+
+    await page.getByRole("button", { name: "Results" }).click();
+    await expect(page.getByText("Rewarded offers")).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "game-ads-results-768.png"),
+      fullPage: true,
+    });
+    await axeOk(page);
+  });
+
   test("metrics loading empty success at breakpoints", async ({ page }) => {
     await asStaff(page);
 
@@ -812,6 +933,14 @@ test.describe("admin screenshots", () => {
         });
         return;
       }
+      if (url.includes("/ads/settings")) {
+        await route.fulfill({ status: 200, body: JSON.stringify(adsSettingsBody) });
+        return;
+      }
+      if (url.includes("/ads/house")) {
+        await route.fulfill({ status: 200, body: JSON.stringify(houseAdsBody) });
+        return;
+      }
       if (url.includes("/games")) {
         await route.fulfill({
           status: 200,
@@ -904,6 +1033,7 @@ test.describe("admin screenshots", () => {
       "/games",
       "/games/one-spark",
       "/games/one-spark/levels",
+      "/games/one-spark/ads",
       "/metrics",
       "/audit",
       "/settings/staff",

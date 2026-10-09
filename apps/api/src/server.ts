@@ -10,6 +10,7 @@ import { registerProgressRoutes } from "./modules/progress/routes.js";
 import { registerWalletRoutes } from "./modules/wallet/routes.js";
 import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
 import { registerAdsRoutes } from "./modules/ads/routes.js";
+import { registerAdAdminRoutes } from "./modules/ads/admin-routes.js";
 import { registerIapRoutes } from "./modules/iap/routes.js";
 import { registerAdminRoutes } from "./modules/admin/routes.js";
 import { registerMetricsRoutes } from "./modules/metrics/routes.js";
@@ -57,6 +58,11 @@ export async function buildServer(config: Config, ctx?: AppContext) {
     await registerAdminRoutes(app, {
       adminAuth: ctx.adminAuth,
       admin: ctx.admin,
+      config,
+    });
+    await registerAdAdminRoutes(app, {
+      adminAuth: ctx.adminAuth,
+      adControls: ctx.adControls,
       config,
     });
     await registerMetricsRoutes(app, {

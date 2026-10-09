@@ -285,4 +285,128 @@ export const api = {
   unban(id: string) {
     return request(`/admin/v1/accounts/${id}/unban`, { method: "POST", body: "{}" });
   },
+  gameAdsSettings(gameId: string) {
+    return request<{
+      gameId: string;
+      interstitial: {
+        enabled: boolean;
+        minTransitions: number;
+        maxTransitions: number;
+        maxPerSession: number;
+        unitId: string;
+      };
+      rewarded: {
+        enabled: boolean;
+        maxPerSession: number;
+        unitId: string;
+      };
+      houseAdsGameEnabled: boolean;
+    }>(`/admin/v1/games/${gameId}/ads/settings`);
+  },
+  updateGameAdsSettings(
+    gameId: string,
+    body: {
+      interstitial: {
+        enabled: boolean;
+        minTransitions: number;
+        maxTransitions: number;
+        maxPerSession: number;
+        unitId: string;
+      };
+      rewarded: {
+        enabled: boolean;
+        maxPerSession: number;
+        unitId: string;
+      };
+      houseAdsGameEnabled?: boolean;
+    },
+  ) {
+    return request<{
+      gameId: string;
+      interstitial: {
+        enabled: boolean;
+        minTransitions: number;
+        maxTransitions: number;
+        maxPerSession: number;
+        unitId: string;
+      };
+      rewarded: {
+        enabled: boolean;
+        maxPerSession: number;
+        unitId: string;
+      };
+      houseAdsGameEnabled: boolean;
+    }>(`/admin/v1/games/${gameId}/ads/settings`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+  houseAds() {
+    return request<{
+      global: { enabled: boolean; killSwitch: boolean; updatedAt: string };
+      games: Array<{ gameId: string; enabled: boolean }>;
+      items: Array<{
+        id: string;
+        promotedGame: string;
+        creativeRef: string;
+        targetGames: string[];
+        platform: "android" | "ios" | null;
+        enabled: boolean;
+        maxPerSession: number;
+        startsAt: string | null;
+        endsAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>("/admin/v1/ads/house");
+  },
+  updateHouseAdsGlobal(body: { enabled?: boolean; killSwitch?: boolean }) {
+    return request<{
+      global: { enabled: boolean; killSwitch: boolean; updatedAt: string };
+      games: Array<{ gameId: string; enabled: boolean }>;
+      items: Array<{
+        id: string;
+        promotedGame: string;
+        creativeRef: string;
+        targetGames: string[];
+        platform: "android" | "ios" | null;
+        enabled: boolean;
+        maxPerSession: number;
+        startsAt: string | null;
+        endsAt: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>("/admin/v1/ads/house/global", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+  createHouseAd(body: {
+    promotedGame: string;
+    creativeRef: string;
+    targetGames: string[];
+    platform?: "android" | "ios" | null;
+    enabled?: boolean;
+    maxPerSession?: number;
+    startsAt?: string | null;
+    endsAt?: string | null;
+  }) {
+    return request<{
+      id: string;
+      promotedGame: string;
+      creativeRef: string;
+      targetGames: string[];
+      platform: "android" | "ios" | null;
+      enabled: boolean;
+      maxPerSession: number;
+      startsAt: string | null;
+      endsAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>("/admin/v1/ads/house", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  },
 };

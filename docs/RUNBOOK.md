@@ -69,8 +69,11 @@ Chosen network: **AdMob** for Interstitial and Rewarded Video only (no native ad
 5. Games call `GET /v1/ads/config?gameId=…` (Bearer). Response includes:
    - `units.interstitial` / `units.rewarded` for that game
    - `interstitial`: `{ minTransitions, maxTransitions, maxPerSession, enabled, nextGap }`
-   - Default pacing: one interstitial every **4–6 level transitions** per session (`nextGap` is the server-chosen value in that range). Show only after a win at a natural break; never mid-level; never right after a rewarded ad; stop at `maxPerSession`.
-6. Google rotates verifier keys; the API caches them ≤ 24h from `ADMOB_SSV_KEYS_URL`. No AdMob private keys live on our servers — only Google's published public keys.
+   - `rewarded`: `{ ssv, kinds, enabled, maxPerSession }`
+   - `houseAds`: `{ available, killSwitch, globalEnabled, gameEnabled, rules, items[] }` — off until owner enables studio-wide and support opts the game in; items never promote the hosting game
+   - Default pacing: one interstitial every **4–6 level transitions** per session (`nextGap` is the server-chosen value in that range). Show only after a win at a natural break; never mid-level; never right after a rewarded or house ad; stop at `maxPerSession`.
+6. Admin: `/games/:game/ads` Controls + House ads. Unit ids and frequency live in `ad_units` / `ad_frequency_caps`. House registry in `house_ads*`. Kill switch = instant off for all games.
+7. Google rotates verifier keys; the API caches them ≤ 24h from `ADMOB_SSV_KEYS_URL`. No AdMob private keys live on our servers — only Google's published public keys.
 
 ## Rotate keys
 

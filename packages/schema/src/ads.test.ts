@@ -40,9 +40,57 @@ describe("ad interstitial config", () => {
         enabled: true,
         nextGap: 4,
       },
-      rewarded: { ssv: true, kinds: ["coins"] },
+      rewarded: { ssv: true, kinds: ["coins"], enabled: true, maxPerSession: 20 },
+      houseAds: {
+        available: false,
+        killSwitch: false,
+        globalEnabled: false,
+        gameEnabled: false,
+        rules: {
+          naturalBreakOnly: true,
+          neverAfterOtherAd: true,
+          requiresConsent: true,
+          neverSelfPromote: true,
+        },
+        items: [],
+      },
     });
     expect(parsed.units.interstitial).toContain("loom-rush");
     expect(parsed.gameId).toBe("loom-rush");
+    expect(parsed.houseAds.available).toBe(false);
+  });
+});
+
+describe("house ad create", () => {
+  test("rejects self-promotion target", async () => {
+    const { houseAdCreateSchema } = await import("./ads.js");
+    expect(() =>
+      houseAdCreateSchema.parse({
+        promotedGame: "one-spark",
+        creativeRef: "bundle://one-spark-demo",
+        targetGames: ["one-spark", "loom-rush"],
+      }),
+    ).toThrow(/never shows a house ad for itself/);
+  });
+
+  test("accepts own-game targets only", async () => {
+    const { houseAdCreateSchema } = await import("./ads.js");
+    const row = houseAdCreateSchema.parse({
+      promotedGame: "one-spark",
+      creativeRef: "bundle://one-spark-demo",
+      targetGames: ["loom-rush", "borrowed-time"],
+    });
+    expect(row.targetGames).toHaveLength(2);
+  });
+
+  test("rejects promoted game outside our catalogue", async () => {
+    const { houseAdCreateSchema } = await import("./ads.js");
+    expect(() =>
+      houseAdCreateSchema.parse({
+        promotedGame: "third-party-puzzle",
+        creativeRef: "bundle://x",
+        targetGames: ["loom-rush"],
+      }),
+    ).toThrow();
   });
 });
