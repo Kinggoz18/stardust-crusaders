@@ -16,6 +16,8 @@ bun run ci
 
 Seed creates fake player devices (`fake-seed-*`) and a staff user `owner@stardust.local` (password printed by seed; TOTP secret printed once). Seed also marks the master-key bootstrap as used.
 
+With `NODE_ENV=development` (or `dev` / `test`), the API serves disabled ad config, blocks reward callbacks, and drops ad/house telemetry. Production deploys must set `NODE_ENV=production` for live ads.
+
 ## First admin (empty database)
 
 1. Set `ADMIN_MASTER_KEY` (≥32 chars) in the API env. Never commit the value.

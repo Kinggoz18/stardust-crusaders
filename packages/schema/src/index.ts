@@ -100,6 +100,17 @@ export { TelemetryClient } from "./client/telemetry-client.js";
 export type { TelemetryTransport, TelemetryClientOptions } from "./client/telemetry-client.js";
 
 export {
+  ADS_DISABLED_IN_ENVIRONMENT_CODE,
+  ADS_DISABLED_IN_ENVIRONMENT_MESSAGE,
+  adsAdminEnvironmentSchema,
+  adsAdminEnvironment,
+  isAdTelemetryEventName,
+  isClientAdsEnabled,
+  normalizeNodeEnv,
+  type AdsAdminEnvironment,
+} from "./ads-env.js";
+
+export {
   adProviderNameSchema,
   adRewardKindSchema,
   adFormatSchema,
