@@ -57,16 +57,19 @@ After restore, run `bun run db:migrate` to ensure journal matches.
 
 ## AdMob setup (names only)
 
-Chosen network: **AdMob** for Interstitial and Rewarded Video only (no native ads).
+Chosen network: **AdMob** for Interstitial and Rewarded Video only (no native ads). One AdMob app setup serves **all three games**; each game has its own interstitial + rewarded **ad unit** pair stored in `ad_units` (replace the `ca-app-pub-test/…` placeholders after creating units in AdMob).
 
-1. In AdMob, create an app per store listing and ad units: Interstitial + Rewarded (and Rewarded Interstitial if used). Note the **ad unit ids** in the game repos — not in this API.
+1. In AdMob, create Interstitial + Rewarded units for **One Spark**, **Loom Rush**, and **Borrowed Time** (six units total). Update `ad_units.unit_id` per `game_id` × format.
 2. Enable **server-side verification (SSV)** on each Rewarded ad unit. Callback URL:
    `https://<API_HOST>/v1/ads/reward-callback` (GET).
 3. Games must set SSV options before show:
    - `user_id` = player account UUID
    - `custom_data` = JSON `{"accountId":"<uuid>","gameId":"one-spark|loom-rush|borrowed-time","rewardKind":"coins|booster|extra_moves|other"}`
 4. API env: set `AD_PROVIDER=admob`. Optional overrides: `ADMOB_SSV_KEYS_URL` (default Google verifier keys), `ADMOB_SSV_MAX_AGE_MS`. Keep `AD_PROVIDER_SIGNING_SECRET` set (unused by AdMob, still required by config).
-5. Games read interstitial frequency caps from `GET /v1/ads/config?gameId=…` (Bearer). Caps are per-game defaults in `ad_frequency_caps`; optional per-account rows override.
+5. Games call `GET /v1/ads/config?gameId=…` (Bearer). Response includes:
+   - `units.interstitial` / `units.rewarded` for that game
+   - `interstitial`: `{ minTransitions, maxTransitions, maxPerSession, enabled, nextGap }`
+   - Default pacing: one interstitial every **4–6 level transitions** per session (`nextGap` is the server-chosen value in that range). Show only after a win at a natural break; never mid-level; never right after a rewarded ad; stop at `maxPerSession`.
 6. Google rotates verifier keys; the API caches them ≤ 24h from `ADMOB_SSV_KEYS_URL`. No AdMob private keys live on our servers — only Google's published public keys.
 
 ## Rotate keys

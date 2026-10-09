@@ -146,12 +146,25 @@ export const adFrequencyCaps = pgTable("ad_frequency_caps", {
   gameId: gameIdEnum("game_id").notNull(),
   accountId: uuid("account_id").references(() => accounts.id, { onDelete: "cascade" }),
   placement: varchar("placement", { length: 32 }).notNull(),
-  maxPerHour: integer("max_per_hour").notNull(),
-  maxPerDay: integer("max_per_day").notNull(),
-  minIntervalSeconds: integer("min_interval_seconds").notNull().default(60),
+  minTransitions: integer("min_transitions").notNull(),
+  maxTransitions: integer("max_transitions").notNull(),
+  maxPerSession: integer("max_per_session").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const adUnits = pgTable(
+  "ad_units",
+  {
+    gameId: gameIdEnum("game_id").notNull(),
+    format: varchar("format", { length: 32 }).notNull(),
+    unitId: varchar("unit_id", { length: 128 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("ad_units_game_format_uidx").on(t.gameId, t.format)],
+);
 
 export const iapWebhookEvents = pgTable("iap_webhook_events", {
   eventId: varchar("event_id", { length: 128 }).primaryKey(),

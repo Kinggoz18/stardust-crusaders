@@ -78,14 +78,16 @@ export {
 export {
   adProviderNameSchema,
   adRewardKindSchema,
+  adFormatSchema,
   adRewardCallbackSchema,
   adRewardResponseSchema,
   admobCustomDataSchema,
-  adFrequencyCapSchema,
+  adInterstitialConfigSchema,
   adConfigResponseSchema,
   type AdRewardCallback,
   type AdmobCustomData,
   type AdConfigResponse,
+  type AdInterstitialConfig,
 } from "./ads.js";
 
 export {

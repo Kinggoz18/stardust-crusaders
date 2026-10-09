@@ -253,8 +253,43 @@ describe("ads", () => {
       });
       expect(cfg.statusCode).toBe(200);
       expect(cfg.json().provider).toBe("admob");
-      expect(cfg.json().placements.interstitial.maxPerHour).toBeGreaterThan(0);
-      expect(cfg.json().placements.rewarded.ssv).toBe(true);
+      expect(cfg.json().gameId).toBe("one-spark");
+      expect(cfg.json().interstitial.minTransitions).toBe(4);
+      expect(cfg.json().interstitial.maxTransitions).toBe(6);
+      expect(cfg.json().interstitial.maxPerSession).toBeGreaterThan(0);
+      expect(cfg.json().interstitial.enabled).toBe(true);
+      expect(cfg.json().interstitial.nextGap).toBeGreaterThanOrEqual(4);
+      expect(cfg.json().interstitial.nextGap).toBeLessThanOrEqual(6);
+      expect(cfg.json().units.interstitial).toContain("one-spark");
+      expect(cfg.json().units.rewarded).toContain("one-spark");
+      expect(cfg.json().rewarded.ssv).toBe(true);
+
+      for (const gameId of ["one-spark", "loom-rush", "borrowed-time"] as const) {
+        const gameCfg = await local.app.inject({
+          method: "GET",
+          url: `/v1/ads/config?gameId=${gameId}`,
+          headers: { authorization: `Bearer ${accessToken}` },
+        });
+        expect(gameCfg.statusCode).toBe(200);
+        const body = gameCfg.json() as {
+          gameId: string;
+          units: { interstitial: string; rewarded: string };
+          interstitial: {
+            minTransitions: number;
+            maxTransitions: number;
+            maxPerSession: number;
+            enabled: boolean;
+            nextGap: number;
+          };
+        };
+        expect(body.gameId).toBe(gameId);
+        expect(body.units.interstitial).toContain(gameId);
+        expect(body.units.rewarded).toContain(gameId);
+        expect(body.units.interstitial).not.toBe(body.units.rewarded);
+        expect(body.interstitial.minTransitions).toBeLessThanOrEqual(body.interstitial.maxTransitions);
+        expect(body.interstitial.nextGap).toBeGreaterThanOrEqual(body.interstitial.minTransitions);
+        expect(body.interstitial.nextGap).toBeLessThanOrEqual(body.interstitial.maxTransitions);
+      }
     } finally {
       await local.stop();
     }

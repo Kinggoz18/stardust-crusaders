@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import {
   adConfigResponseSchema,
@@ -8,9 +9,16 @@ import {
   type GameId,
 } from "@stardust/schema";
 import type { Db } from "../../db/client.js";
-import { adFrequencyCaps, adRewardTransactions } from "../../db/schema.js";
+import { adFrequencyCaps, adRewardTransactions, adUnits } from "../../db/schema.js";
 import type { AdProvider } from "./provider.js";
 import type { WalletService } from "../wallet/service.js";
+
+const DEFAULT_INTERSTITIAL = {
+  minTransitions: 4,
+  maxTransitions: 6,
+  maxPerSession: 3,
+  enabled: true,
+};
 
 export class AdsService {
   constructor(
@@ -42,49 +50,69 @@ export class AdsService {
 
   async configFor(accountId: string, gameIdRaw: string): Promise<AdConfigResponse> {
     const gameId = gameIdSchema.parse(gameIdRaw);
-    const interstitial = await this.resolveCap(accountId, gameId, "interstitial");
+    const interstitialBase = await this.resolveInterstitial(accountId, gameId);
+    const nextGap = randomInt(interstitialBase.minTransitions, interstitialBase.maxTransitions + 1);
+    const units = await this.resolveUnits(gameId);
     return adConfigResponseSchema.parse({
       provider: this.provider.name,
-      placements: {
-        interstitial,
-        rewarded: {
-          ssv: true,
-          kinds: ["coins", "booster", "extra_moves", "other"],
-        },
+      gameId,
+      units,
+      interstitial: { ...interstitialBase, nextGap },
+      rewarded: {
+        ssv: true,
+        kinds: ["coins", "booster", "extra_moves", "other"],
       },
     });
   }
 
-  private async resolveCap(accountId: string, gameId: GameId, placement: string) {
+  private async resolveInterstitial(accountId: string, gameId: GameId) {
     const override = await this.db.query.adFrequencyCaps.findFirst({
       where: and(
         eq(adFrequencyCaps.gameId, gameId),
         eq(adFrequencyCaps.accountId, accountId),
-        eq(adFrequencyCaps.placement, placement),
+        eq(adFrequencyCaps.placement, "interstitial"),
       ),
     });
     if (override) {
       return {
-        maxPerHour: override.maxPerHour,
-        maxPerDay: override.maxPerDay,
-        minIntervalSeconds: override.minIntervalSeconds,
+        minTransitions: override.minTransitions,
+        maxTransitions: override.maxTransitions,
+        maxPerSession: override.maxPerSession,
+        enabled: override.enabled,
       };
     }
     const defaults = await this.db.query.adFrequencyCaps.findFirst({
       where: and(
         eq(adFrequencyCaps.gameId, gameId),
         isNull(adFrequencyCaps.accountId),
-        eq(adFrequencyCaps.placement, placement),
+        eq(adFrequencyCaps.placement, "interstitial"),
       ),
     });
-    if (!defaults) {
-      return { maxPerHour: 6, maxPerDay: 30, minIntervalSeconds: 90 };
-    }
+    if (!defaults) return { ...DEFAULT_INTERSTITIAL };
     return {
-      maxPerHour: defaults.maxPerHour,
-      maxPerDay: defaults.maxPerDay,
-      minIntervalSeconds: defaults.minIntervalSeconds,
+      minTransitions: defaults.minTransitions,
+      maxTransitions: defaults.maxTransitions,
+      maxPerSession: defaults.maxPerSession,
+      enabled: defaults.enabled,
     };
+  }
+
+  private async resolveUnits(gameId: GameId) {
+    const rows = await this.db.query.adUnits.findMany({
+      where: eq(adUnits.gameId, gameId),
+    });
+    const interstitial = rows.find((r) => r.format === "interstitial")?.unitId;
+    const rewarded = rows.find((r) => r.format === "rewarded")?.unitId;
+    if (!interstitial || !rewarded) {
+      const err = new Error("Ad units are not configured for this game.") as Error & {
+        statusCode: number;
+        code: string;
+      };
+      err.statusCode = 500;
+      err.code = "ad_units_missing";
+      throw err;
+    }
+    return { interstitial, rewarded };
   }
 
   private async grantOnce(payload: AdRewardCallback) {

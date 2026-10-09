@@ -31,7 +31,8 @@ Staff browser ──► apps/admin (Pages SPA)
 - **wallet_ledger** — append-only coins with idempotency keys
 - **telemetry_events** — deduped by event id; consent-gated
 - **ad_reward_transactions** / **iap_webhook_events** — idempotent provider callbacks
-- **ad_frequency_caps** — per-game (and optional per-account) interstitial caps for games to read
+- **ad_frequency_caps** — per-game (and optional per-account) interstitial pacing by level transitions
+- **ad_units** — one AdMob unit id per game × format (interstitial, rewarded)
 - **staff_users** / **staff_sessions** / **staff_invites** / **admin_bootstrap** / **admin_audit_log** — argon2id + TOTP, one-time master-key bootstrap, invite tokens, audited reads/writes
 
 ## Module layout (`apps/api/src/modules`)
@@ -74,9 +75,9 @@ Staff browser ──► apps/admin (Pages SPA)
 
 ### DR6 — Ad network
 
-**Decision:** **AdMob** for Interstitial and Rewarded Video. No native ads. `AdProvider` implementations: `none`, `generic` (HMAC test), `admob` (SSV ECDSA against Google's published verifier keys, cached ≤24h). Rewarded grants are idempotent by `transaction_id`. Interstitial frequency caps live in `ad_frequency_caps` and are exposed on `GET /v1/ads/config`.
+**Decision:** **AdMob** for Interstitial and Rewarded Video. No native ads. One AdMob setup serves all three games with a distinct unit pair per game in `ad_units`. `AdProvider` implementations: `none`, `generic` (HMAC test), `admob` (SSV ECDSA against Google's published verifier keys, cached ≤24h). Rewarded grants are idempotent by `transaction_id`. Interstitial pacing is by **level transitions** (`minTransitions`/`maxTransitions`, default 4–6) with a hard `maxPerSession`; `GET /v1/ads/config` returns units + pacing including a server-chosen `nextGap`. Clients show interstitials only after a win at a natural break, never mid-level, never immediately after a rewarded ad.
 
-**Why:** Owner choice; SSV removes client-trusted rewards; caps stay configurable without a mediation SDK on the server.
+**Why:** Owner choice; SSV removes client-trusted rewards; transition-based pacing matches puzzle session rhythm better than wall-clock caps.
 
 ## Progress conflict handling
 
