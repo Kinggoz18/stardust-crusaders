@@ -215,12 +215,26 @@ test.describe("admin screenshots", () => {
   test("keyboard reaches primary search", async ({ page }) => {
     await asStaff(page);
     await mockAccounts(page, "success");
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/accounts");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
     await page.getByLabel("Search players").focus();
     await expect(page.getByLabel("Search players")).toBeFocused();
+  });
+
+  test("menu drawer opens and closes with escape at 360", async ({ page }) => {
+    await asStaff(page);
+    await mockAccounts(page, "success");
+    await page.setViewportSize({ width: 360, height: 900 });
+    await page.goto("/accounts");
+    const menu = page.getByRole("button", { name: "Menu" });
+    await expect(menu).toBeVisible();
+    await menu.click();
+    const dialog = page.getByRole("dialog", { name: "Studio menu" });
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(menu).toBeFocused();
+    await assertNoHorizontalScroll(page);
   });
 
   test("no horizontal page scroll at 360 on every route", async ({ page }) => {
