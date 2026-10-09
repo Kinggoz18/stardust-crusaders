@@ -127,6 +127,12 @@ export function GameAdsPage() {
         </button>
       </div>
 
+      {settings && !settings.environment.clientAdsEnabled ? (
+        <p className="banner" role="status">
+          {settings.environment.bannerMessage ?? "Ads are off in development."}
+        </p>
+      ) : null}
+
       {error ? <ErrorState message={error} /> : null}
       {!error && !settings ? <SkeletonList rows={4} /> : null}
 
@@ -134,6 +140,7 @@ export function GameAdsPage() {
         <ControlsForm
           settings={settings}
           saving={saving}
+          readOnly={!settings.environment.clientAdsEnabled}
           onSave={(next) => void saveSettings(next)}
         />
       ) : null}
@@ -145,6 +152,7 @@ export function GameAdsPage() {
           gameEnabled={settings.houseAdsGameEnabled}
           isOwner={auth.role === "owner"}
           saving={saving}
+          readOnly={!settings.environment.clientAdsEnabled}
           onToggleGame={(enabled) =>
             void saveSettings({ ...settings, houseAdsGameEnabled: enabled })
           }
@@ -228,10 +236,12 @@ export function GameAdsPage() {
 function ControlsForm({
   settings,
   saving,
+  readOnly,
   onSave,
 }: {
   settings: Settings;
   saving: boolean;
+  readOnly: boolean;
   onSave: (next: Settings) => void;
 }) {
   const [draft, setDraft] = useState(settings);
@@ -242,15 +252,16 @@ function ControlsForm({
       className="ad-controls-form"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(draft);
+        if (!readOnly) onSave(draft);
       }}
     >
-      <fieldset>
+      <fieldset disabled={readOnly}>
         <legend>Interstitial</legend>
         <label className="check-row">
           <input
             type="checkbox"
             checked={draft.interstitial.enabled}
+            disabled={readOnly}
             onChange={(e) =>
               setDraft({
                 ...draft,
@@ -265,6 +276,7 @@ function ControlsForm({
           <input
             type="number"
             min={1}
+            disabled={readOnly}
             value={draft.interstitial.minTransitions}
             onChange={(e) =>
               setDraft({
@@ -325,12 +337,13 @@ function ControlsForm({
         </label>
       </fieldset>
 
-      <fieldset>
+      <fieldset disabled={readOnly}>
         <legend>Rewarded</legend>
         <label className="check-row">
           <input
             type="checkbox"
             checked={draft.rewarded.enabled}
+            disabled={readOnly}
             onChange={(e) =>
               setDraft({
                 ...draft,
@@ -368,7 +381,7 @@ function ControlsForm({
         </label>
       </fieldset>
 
-      <button type="submit" disabled={saving}>
+      <button type="submit" disabled={saving || readOnly}>
         {saving ? "Saving…" : "Save ad controls"}
       </button>
     </form>
@@ -386,12 +399,14 @@ function HouseAdsPanel({
   onAskKill,
   onClearKill,
   onCreated,
+  readOnly,
 }: {
   gameId: AdminGameId;
   house: HouseList;
   gameEnabled: boolean;
   isOwner: boolean;
   saving: boolean;
+  readOnly: boolean;
   onToggleGame: (enabled: boolean) => void;
   onAskEnableGlobal: () => void;
   onAskKill: () => void;
@@ -429,22 +444,22 @@ function HouseAdsPanel({
           <input
             type="checkbox"
             checked={gameEnabled}
-            disabled={saving}
+            disabled={saving || readOnly}
             onChange={(e) => onToggleGame(e.target.checked)}
           />
           Allow house ads in {GAME_LABELS[gameId]}
         </label>
         {isOwner && !house.global.enabled ? (
-          <button type="button" onClick={onAskEnableGlobal} disabled={saving}>
+          <button type="button" onClick={onAskEnableGlobal} disabled={saving || readOnly}>
             Turn on for studio
           </button>
         ) : null}
         {!house.global.killSwitch ? (
-          <button type="button" className="danger" onClick={onAskKill} disabled={saving}>
+          <button type="button" className="danger" onClick={onAskKill} disabled={saving || readOnly}>
             Kill switch
           </button>
         ) : (
-          <button type="button" onClick={onClearKill} disabled={saving}>
+          <button type="button" onClick={onClearKill} disabled={saving || readOnly}>
             Clear kill switch
           </button>
         )}
@@ -459,6 +474,7 @@ function HouseAdsPanel({
         className="ad-controls-form"
         onSubmit={(e) => {
           e.preventDefault();
+          if (readOnly) return;
           setPending(true);
           setLocalError(null);
           void api
@@ -474,7 +490,7 @@ function HouseAdsPanel({
             .finally(() => setPending(false));
         }}
       >
-        <fieldset>
+        <fieldset disabled={readOnly}>
           <legend>New house ad for this game</legend>
           <label>
             Promoted game
@@ -493,7 +509,7 @@ function HouseAdsPanel({
             Creative / bundle reference
             <input value={creative} onChange={(e) => setCreative(e.target.value)} required />
           </label>
-          <button type="submit" disabled={pending}>
+          <button type="submit" disabled={pending || readOnly}>
             {pending ? "Adding…" : "Add house ad"}
           </button>
         </fieldset>

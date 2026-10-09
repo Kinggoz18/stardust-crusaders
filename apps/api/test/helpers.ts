@@ -4,7 +4,10 @@ import { buildServer } from "../src/server.js";
 import { migrateUp } from "../src/db/migrator.js";
 import { startTestPostgres, type TestPg } from "./pg.js";
 
-export function testConfig(databaseUrl: string) {
+export function testConfig(
+  databaseUrl: string,
+  overrides?: { nodeEnv?: "development" | "test" | "production" },
+) {
   return loadConfig({
     DATABASE_URL: databaseUrl,
     JWT_SECRET: "x".repeat(32),
@@ -17,14 +20,14 @@ export function testConfig(databaseUrl: string) {
     REVENUECAT_WEBHOOK_SECRET: "rc-secret-test",
     AD_PROVIDER: process.env.AD_PROVIDER ?? "none",
     AD_PROVIDER_SIGNING_SECRET: "ad-secret-test",
-    NODE_ENV: "test",
+    NODE_ENV: overrides?.nodeEnv ?? "test",
     LOG_LEVEL: "error",
   } as NodeJS.ProcessEnv);
 }
 
-export async function startTestApp() {
+export async function startTestApp(options?: { nodeEnv?: "development" | "test" | "production" }) {
   const pg = await startTestPostgres();
-  const config = testConfig(pg.connectionString);
+  const config = testConfig(pg.connectionString, { nodeEnv: options?.nodeEnv });
   const ctx = createAppContext(config, pg.connectionString);
   await migrateUp(ctx.sql);
   const app = await buildServer(config, ctx);

@@ -26,7 +26,7 @@ Consistent errors:
 | POST | `/v1/events` | optional Bearer | `postEventsRequestSchema`; consent + dedupe |
 | POST | `/v1/ads/reward-callback` | signature | Generic HMAC body (`adRewardCallbackSchema`) when `AD_PROVIDER=generic` |
 | GET | `/v1/ads/reward-callback` | AdMob SSV | Query-string ECDSA callback; idempotent by `transaction_id` |
-| GET | `/v1/ads/config?gameId=` | Bearer | Per-game units, interstitial/rewarded pacing, and house-ad offers (`adConfigResponseSchema`). House ads off by default; never self-promote. |
+| GET | `/v1/ads/config?gameId=` | Bearer | Per-game units, interstitial/rewarded pacing, and house-ad offers (`adConfigResponseSchema`). House ads off by default; never self-promote. When `NODE_ENV` is not `production` (including `development`, `dev`, and `test`), all formats are disabled, house offers are empty, reward callbacks return `403` (`ads_disabled_in_environment`), and ad/house telemetry events are rejected. |
 | POST | `/v1/webhooks/revenuecat` | HMAC header | sandbox stub; idempotent by event id |
 
 `gameId`: `one-spark` \| `loom-rush` \| `borrowed-time`.

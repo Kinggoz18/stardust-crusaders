@@ -1,12 +1,21 @@
-import { parseTelemetryProps, postEventsRequestSchema } from "@stardust/schema";
+import {
+  isAdTelemetryEventName,
+  isClientAdsEnabled,
+  parseTelemetryProps,
+  postEventsRequestSchema,
+} from "@stardust/schema";
 import { sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
 import { metricsQualityDaily, telemetryEvents } from "../../db/schema.js";
+import type { Config } from "../../config.js";
 
 const MAX_PROPS_BYTES = 8 * 1024;
 
 export class TelemetryService {
-  constructor(private readonly db: Db["db"]) {}
+  constructor(
+    private readonly db: Db["db"],
+    private readonly config: Config,
+  ) {}
 
   async ingest(accountId: string | null, raw: unknown) {
     const body = postEventsRequestSchema.parse(raw);
@@ -19,7 +28,13 @@ export class TelemetryService {
     let duplicates = 0;
     let rejected = 0;
 
+    const adsEnabled = isClientAdsEnabled(this.config.NODE_ENV);
+
     for (const event of body.events) {
+      if (!adsEnabled && isAdTelemetryEventName(event.name)) {
+        rejected += 1;
+        continue;
+      }
       const propsCheck = parseTelemetryProps(event.name, event.props ?? {});
       if (!propsCheck.ok) {
         rejected += 1;
