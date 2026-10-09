@@ -200,6 +200,40 @@ describe("admin api", () => {
     });
     expect(audit.statusCode).toBe(200);
     expect(audit.json().entries.length).toBeGreaterThan(0);
+
+    const anon = await harness.app.inject({
+      method: "POST",
+      url: "/v1/accounts/anonymous",
+      payload: {
+        deviceId: `game-player-${crypto.randomUUID().slice(0, 8)}`,
+        platform: "ios",
+        consent: { analytics: true, crashReports: false, marketing: false },
+      },
+    });
+    expect([200, 201]).toContain(anon.statusCode);
+    const access = anon.json().accessToken as string;
+    const put = await harness.app.inject({
+      method: "PUT",
+      url: "/v1/games/one-spark/progress",
+      headers: { authorization: `Bearer ${access}` },
+      payload: {
+        revision: 0,
+        document: {
+          stars: { "1": [true, false, false] },
+          album: {},
+          coins: 5,
+          firstClear: { "1": true },
+        },
+      },
+    });
+    expect(put.statusCode).toBe(200);
+    const gamePlayers = await harness.app.inject({
+      method: "GET",
+      url: "/admin/v1/games/one-spark/players",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(gamePlayers.statusCode).toBe(200);
+    expect(gamePlayers.json().accounts.length).toBeGreaterThan(0);
   });
 
   test("owner can invite staff; support cannot", async () => {

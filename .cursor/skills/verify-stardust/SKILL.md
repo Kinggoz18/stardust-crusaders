@@ -35,8 +35,12 @@ Feature map (states × breakpoints):
 | `/accounts` | loading, empty, error, success | 360, 768, 1280 |
 | `/accounts/:id` | loading, error, success | 360, 768, 1280 |
 | `/accounts/:id/games/:game` | loading, empty, success | 360, 768, 1280 |
-| `/games` | success | 360, 768, 1280 |
-| `/metrics` | loading, empty, success | 360, 768, 1280 |
+| `/games` | success (studio headlines) | 360, 768, 1280 |
+| `/games/:game` | overview + sections | 360, 768, 1280 |
+| `/games/:game/levels` | success | 360, 768, 1280 |
+| `/games/one-spark/curve` | success | 360, 768, 1280 |
+| `/games/borrowed-time/island` | success | 360, 768, 1280 |
+| `/metrics` | loading, empty, success (thin studio) | 360, 768, 1280 |
 | `/audit` | loading, empty, success | 360, 768, 1280 |
 | `/settings/staff` | loading, no-permission, success | 360, 768, 1280 |
 

@@ -8,13 +8,17 @@ import { AccountsPage } from "./pages/AccountsPage";
 import { AccountDetailPage } from "./pages/AccountDetailPage";
 import { AccountGamePage } from "./pages/AccountGamePage";
 import { GamesPage } from "./pages/GamesPage";
+import { GameShell } from "./components/game/GameShell";
+import { GameOverviewPage } from "./pages/game/GameOverviewPage";
+import { GamePlayersPage } from "./pages/game/GamePlayersPage";
+import { GameLevelsPage } from "./pages/game/GameLevelsPage";
+import { GameEconomyPage } from "./pages/game/GameEconomyPage";
+import { GameAdsPage } from "./pages/game/GameAdsPage";
+import { GameEventsPage } from "./pages/game/GameEventsPage";
+import { GameCurvePage } from "./pages/game/GameCurvePage";
+import { GameHintsPage } from "./pages/game/GameHintsPage";
+import { GameIslandPage } from "./pages/game/GameIslandPage";
 import { MetricsPage } from "./pages/MetricsPage";
-import { MetricsRetentionPage } from "./pages/metrics/RetentionPage";
-import { MetricsFunnelPage } from "./pages/metrics/FunnelPage";
-import { MetricsDifficultyPage } from "./pages/metrics/DifficultyPage";
-import { MetricsEconomyPage } from "./pages/metrics/EconomyPage";
-import { MetricsAdsPage } from "./pages/metrics/AdsPage";
-import { MetricsQualityPage } from "./pages/metrics/QualityPage";
 import { AuditPage } from "./pages/AuditPage";
 import { StaffSettingsPage } from "./pages/StaffSettingsPage";
 
@@ -43,13 +47,31 @@ export function App() {
           <Route path="/accounts/:id" element={<AccountDetailPage />} />
           <Route path="/accounts/:id/games/:game" element={<AccountGamePage />} />
           <Route path="/games" element={<GamesPage />} />
+          <Route path="/games/:game" element={<GameShell />}>
+            <Route index element={<GameOverviewPage />} />
+            <Route path="players" element={<GamePlayersPage />} />
+            <Route path="levels" element={<GameLevelsPage />} />
+            <Route path="economy" element={<GameEconomyPage />} />
+            <Route path="ads" element={<GameAdsPage />} />
+            <Route path="events" element={<GameEventsPage />} />
+            <Route path="curve" element={<GameCurvePage />} />
+            <Route path="hints" element={<GameHintsPage />} />
+            <Route path="island" element={<GameIslandPage />} />
+          </Route>
           <Route path="/metrics" element={<MetricsPage />} />
-          <Route path="/metrics/retention" element={<MetricsRetentionPage />} />
-          <Route path="/metrics/funnel" element={<MetricsFunnelPage />} />
-          <Route path="/metrics/difficulty" element={<MetricsDifficultyPage />} />
-          <Route path="/metrics/economy" element={<MetricsEconomyPage />} />
-          <Route path="/metrics/ads" element={<MetricsAdsPage />} />
-          <Route path="/metrics/quality" element={<MetricsQualityPage />} />
+          {/* Old shared metrics routes → game dashboards */}
+          <Route path="/metrics/retention" element={<Navigate to="/metrics" replace />} />
+          <Route path="/metrics/funnel" element={<Navigate to="/games/one-spark/levels" replace />} />
+          <Route
+            path="/metrics/difficulty"
+            element={<Navigate to="/games/one-spark/curve" replace />}
+          />
+          <Route
+            path="/metrics/economy"
+            element={<Navigate to="/games/one-spark/economy" replace />}
+          />
+          <Route path="/metrics/ads" element={<Navigate to="/games/one-spark/ads" replace />} />
+          <Route path="/metrics/quality" element={<Navigate to="/metrics" replace />} />
           <Route path="/audit" element={<AuditPage />} />
           <Route path="/settings/staff" element={<StaffSettingsPage />} />
         </Route>

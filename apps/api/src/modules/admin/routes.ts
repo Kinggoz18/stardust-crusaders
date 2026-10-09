@@ -166,6 +166,14 @@ export async function registerAdminRoutes(
     };
   });
 
+  app.get("/admin/v1/games/:gameId/players", async (req, reply) => {
+    const staff = await requireStaff(req, deps);
+    if (!staff) return unauthorized(reply);
+    const gameId = gameIdSchema.parse((req.params as { gameId: string }).gameId);
+    const cursor = (req.query as { cursor?: string }).cursor;
+    return deps.admin.listGamePlayers(staff, gameId, cursor);
+  });
+
   app.get("/admin/v1/staff", async (req, reply) => {
     const staff = await requireStaff(req, deps);
     if (!staff) return unauthorized(reply);

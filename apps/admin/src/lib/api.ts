@@ -210,6 +210,22 @@ export const api = {
       games: Array<{ id: string; name: string; draft: boolean; summary: string }>;
     }>("/admin/v1/games");
   },
+  gamePlayers(gameId: string, cursor?: string) {
+    const params = new URLSearchParams();
+    if (cursor) params.set("cursor", cursor);
+    const q = params.toString();
+    return request<{
+      accounts: Array<{
+        id: string;
+        deviceId: string;
+        email: string | null;
+        platform: string;
+        bannedAt: string | null;
+        createdAt: string;
+      }>;
+      nextCursor: string | null;
+    }>(`/admin/v1/games/${gameId}/players${q ? `?${q}` : ""}`);
+  },
   audit() {
     return request<{
       entries: Array<{

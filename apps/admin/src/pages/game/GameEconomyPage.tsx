@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-import { useMetricsFilters } from "../../hooks/useMetricsFilters";
-import { MetricsChrome } from "../../components/metrics/MetricsChrome";
+import { useGameId, useGameMetricsFilters } from "../../hooks/useGameDashboard";
+import { GameFilters } from "../../components/game/GameFilters";
 import { ChartPanel } from "../../components/metrics/ChartPanel";
 import { EmptyState, ErrorState, SkeletonList } from "../../components/States";
 
-export function MetricsEconomyPage() {
-  const { filters, setFilters, query } = useMetricsFilters();
+export function GameEconomyPage() {
+  const gameId = useGameId();
+  const { filters, setFilters, query } = useGameMetricsFilters(gameId);
   const [data, setData] = useState<Awaited<ReturnType<typeof api.metricsEconomy>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,16 +36,14 @@ export function MetricsEconomyPage() {
     data.coinOut === 0;
 
   return (
-    <MetricsChrome
-      title="Coins & hints"
-      blurb="Where coins come from, where they go, and how hints are paid for."
-      filters={filters}
-      onChange={setFilters}
-    >
+    <div className="game-section">
+      <h2 className="section-title">Coins</h2>
+      <p className="metrics-caption">Sources, sinks and balances for this game.</p>
+      <GameFilters filters={filters} onChange={setFilters} />
       {error ? <ErrorState message={error} /> : null}
       {!error && !data ? <SkeletonList rows={3} /> : null}
       {empty ? (
-        <EmptyState title="No economy activity" body="Coin and hint rows appear after play." />
+        <EmptyState title="No economy activity" body="Coin rows appear after play." />
       ) : null}
       {data && !empty ? (
         <>
@@ -68,10 +67,7 @@ export function MetricsEconomyPage() {
           </dl>
           <ChartPanel
             title="Balance buckets"
-            rows={data.balanceBuckets.map((b) => ({
-              label: b.bucket,
-              value: b.accounts,
-            }))}
+            rows={data.balanceBuckets.map((b) => ({ label: b.bucket, value: b.accounts }))}
           />
           <ChartPanel
             title="By reason"
@@ -83,6 +79,6 @@ export function MetricsEconomyPage() {
           />
         </>
       ) : null}
-    </MetricsChrome>
+    </div>
   );
 }

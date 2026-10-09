@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { pct } from "../../lib/metrics-filters";
-import { useMetricsFilters } from "../../hooks/useMetricsFilters";
-import { MetricsChrome } from "../../components/metrics/MetricsChrome";
+import { useGameId, useGameMetricsFilters } from "../../hooks/useGameDashboard";
+import { GameFilters } from "../../components/game/GameFilters";
 import { ChartPanel } from "../../components/metrics/ChartPanel";
+import { IosLimitedLabel } from "../../components/IosLimitedLabel";
 import { EmptyState, ErrorState, SkeletonList } from "../../components/States";
 
-export function MetricsOverviewPage() {
-  const { filters, setFilters, query } = useMetricsFilters();
+export function GameOverviewPage() {
+  const gameId = useGameId();
+  const { filters, setFilters, query } = useGameMetricsFilters(gameId);
   const [data, setData] = useState<Awaited<ReturnType<typeof api.metricsOverview>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,16 +33,17 @@ export function MetricsOverviewPage() {
   const empty = data && data.dau === 0 && data.newAccounts === 0 && data.sessions === 0;
 
   return (
-    <MetricsChrome
-      title="Trends"
-      blurb="How players are showing up across the studio."
-      filters={filters}
-      onChange={setFilters}
-    >
+    <div className="game-section">
+      <h2 className="section-title">Overview</h2>
+      <p className="metrics-caption">
+        Headline numbers for this game.{" "}
+        <IosLimitedLabel detail="Active players use first-party account or device ids only — never an advertising id." />
+      </p>
+      <GameFilters filters={filters} onChange={setFilters} />
       {error ? <ErrorState message={error} /> : null}
       {!error && !data ? <SkeletonList rows={4} /> : null}
       {empty ? (
-        <EmptyState title="No traffic yet" body="Trends appear after players open a game." />
+        <EmptyState title="No traffic yet" body="Numbers appear after players open this game." />
       ) : null}
       {data && !empty ? (
         <>
@@ -50,7 +53,9 @@ export function MetricsOverviewPage() {
               <dd>{data.newAccounts}</dd>
             </div>
             <div>
-              <dt>Daily players</dt>
+              <dt>
+                Daily players <IosLimitedLabel />
+              </dt>
               <dd>{data.dau}</dd>
             </div>
             <div>
@@ -82,10 +87,9 @@ export function MetricsOverviewPage() {
               <dd>{pct(data.retention.d30)}</dd>
             </div>
           </dl>
-
           <ChartPanel
             title="Daily players"
-            caption="Players with at least one event that day."
+            caption="Players with at least one consented event that day (first-party id)."
             rows={data.series.map((s) => ({
               label: s.day,
               value: s.dau,
@@ -94,6 +98,6 @@ export function MetricsOverviewPage() {
           />
         </>
       ) : null}
-    </MetricsChrome>
+    </div>
   );
 }

@@ -30,32 +30,50 @@ Wire shape: `telemetryEventSchema` in `@stardust/schema`. Named events below hav
 
 Batch request: `postEventsRequestSchema` — `consentAnalytics: false` rejects the whole batch (counted as opt-out / rejected).
 
+## Privacy (iOS / Android)
+
+We never use IDFA, GAID, or device fingerprinting. Analytics are consent-gated (`consentAnalytics`). Identity for metrics is first-party only:
+
+- **Signed-in / linked account** → `account_id` from our Bearer token
+- **Anonymous** → our opaque account row keyed by studio `deviceId` (not an advertising id)
+- **Segments we do use:** new vs returning (first-seen cohort), platform (`android` \| `ios`), consent state, signed-in vs anonymous
+- **When ATT is declined (or never asked):** keep first-party gameplay metrics; **omit** advertising-id attribution and treat ARPDAU / campaign install sources as unavailable on iOS
+
+| Scope | Meaning |
+| --- | --- |
+| **Full** | Same definition on Android and iOS using first-party ids |
+| **iOS-limited** | Available with first-party ids; advertising-network or ATT-dependent slices omitted or labelled in admin |
+| **Android-only** | Not computed on iOS (none today — we do not ship GAID-based metrics) |
+
+Dashboard shows a small **Limited on iOS** label on iOS-limited tiles.
+
 ## Metric catalogue
 
 Definitions use **UTC calendar days** unless noted. Filters: `gameId`, `platform`, date range.
 
-| Metric | Definition | Source |
-| --- | --- | --- |
-| Installs / new accounts | Count of `accounts` created in the day (and optional `install` events) | accounts + events |
-| DAU | Distinct `account_id` with ≥1 event that day (null account_id excluded from DAU) | events → `metrics_daily` |
-| WAU / MAU | Distinct accounts with ≥1 event in trailing 7 / 30 days ending that day | events → `metrics_daily` |
-| Stickiness | DAU / MAU for that day | derived |
-| Retention D1 / D7 / D30 | Of accounts whose **first event day** (cohort) is C: share with ≥1 event on C+N | `metrics_retention_cohort` |
-| Sessions | Count of `session_start` | rollup |
-| Session length | Sum/avg of `session_end.durationSec` | rollup |
-| Level funnel | Per game×level: starts, wins, fails, quits; attempts; avg moves left on win; star histogram | `metrics_level_daily` |
-| Difficulty health | Actual win rate = wins/starts vs designed band in `level_difficulty_bands` (One Spark phases from FINAL_PLAN) | rollup + bands |
-| Hint usage | `hint_used` split by `source` coins vs ad | economy rollup |
-| Coin sources / sinks | Sums from wallet ledger by reason (authoritative) + optional client `coin_*` | ledger + events |
-| Balance distribution | Snapshot buckets of current balances (from ledger) on rollup day | wallet |
-| Rewarded ads | offers / starts / completions; completion rate; rewards granted per user (SSV + events) | events + `ad_reward_transactions` |
-| Interstitials / session | Impressions / sessions | events |
-| ARPDAU | Ad revenue / DAU — **table ready** (`metrics_ad_revenue_daily`); ingestion from AdMob reports **later** | pending |
-| IAP conversion | Distinct purchasers / DAU; revenue from RevenueCat webhook rows | `iap_webhook_events` |
-| Payer share | Lifetime or period purchasers / active accounts | IAP + accounts |
-| Time to first purchase | Median hours from account create to first IAP event | IAP + accounts |
-| Borrowed Time | Era reached, buildings, debt from `tier_reached` / progress; session pacing | events + progress |
-| Data quality | accepted / duplicates / rejected / consent opt-outs per day | `metrics_quality_daily` |
+| Metric | Definition | Source | Privacy |
+| --- | --- | --- | --- |
+| Installs / new accounts | Count of `accounts` created in the day (and optional `install` events) | accounts + events | Full (first-party); campaign attribution omitted on iOS without ATT |
+| DAU | Distinct `account_id` with ≥1 event that day (null account_id excluded from DAU) | events → `metrics_daily` | Full |
+| WAU / MAU | Distinct accounts with ≥1 event in trailing 7 / 30 days ending that day | events → `metrics_daily` | Full |
+| Stickiness | DAU / MAU for that day | derived | Full |
+| Retention D1 / D7 / D30 | Of accounts whose **first event day** (cohort) is C: share with ≥1 event on C+N | `metrics_retention_cohort` | Full |
+| User type splits | New vs returning, platform, consent, signed-in vs anonymous | accounts + events | Full |
+| Sessions | Count of `session_start` | rollup | Full |
+| Session length | Sum/avg of `session_end.durationSec` | rollup | Full |
+| Level funnel | Per game×level: starts, wins, fails, quits; attempts; avg moves left on win; star histogram | `metrics_level_daily` | Full |
+| Difficulty health | Actual win rate = wins/starts vs designed band in `level_difficulty_bands` (One Spark phases from FINAL_PLAN) | rollup + bands | Full |
+| Hint usage | `hint_used` split by `source` coins vs ad | economy rollup | Full |
+| Coin sources / sinks | Sums from wallet ledger by reason (authoritative) + optional client `coin_*` | ledger + events | Full |
+| Balance distribution | Snapshot buckets of current balances (from ledger) on rollup day | wallet | Full |
+| Rewarded ads | offers / starts / completions; completion rate; rewards granted per user (SSV + events) | events + `ad_reward_transactions` | Full (server SSV); fill-rate by advertising id omitted |
+| Interstitials / session | Impressions / sessions | events | Full |
+| ARPDAU | Ad revenue / DAU — **table ready** (`metrics_ad_revenue_daily`); ingestion from AdMob reports **later** | pending | **iOS-limited** (network reports; no IDFA join) |
+| IAP conversion | Distinct purchasers / DAU; revenue from RevenueCat webhook rows | `iap_webhook_events` | Full |
+| Payer share | Lifetime or period purchasers / active accounts | IAP + accounts | Full |
+| Time to first purchase | Median hours from account create to first IAP event | IAP + accounts | Full |
+| Borrowed Time | Era reached, buildings, debt from `tier_reached` / progress; session pacing | events + progress | Full |
+| Data quality | accepted / duplicates / rejected / consent opt-outs per day | `metrics_quality_daily` | Full |
 
 ## Rollup job
 
@@ -68,7 +86,10 @@ Definitions use **UTC calendar days** unless noted. Filters: `gameId`, `platform
 
 ## Admin surfaces
 
-`/metrics` overview, retention, level funnel, difficulty, economy, ads & revenue, data quality. API under `/admin/v1/metrics/*`.
+- `/metrics` — thin **studio** headlines + data health only
+- `/games` — studio headlines + entry to each title
+- `/games/:game` — per-game dashboard (overview, players, levels, coins, ads, events; One Spark: level curve + hints; Borrowed Time: eras & debt). Role-aware nav (e.g. Ads requires support+).
+- API under `/admin/v1/metrics/*` and `/admin/v1/games/:gameId/players`
 
 ## Client helper
 

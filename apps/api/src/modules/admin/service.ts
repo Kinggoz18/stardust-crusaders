@@ -52,6 +52,38 @@ export class AdminService {
     return { accounts: page, nextCursor: next };
   }
 
+  async listGamePlayers(staff: StaffContext, gameId: GameId, cursor?: string, limit = 20) {
+    this.auth.requireRole(staff, ["owner", "support", "viewer"]);
+    await this.auth.audit(staff.staffId, "search_accounts", "game", gameId, { gameId });
+
+    const rows = await this.db
+      .select({
+        id: accounts.id,
+        deviceId: accounts.deviceId,
+        email: accounts.email,
+        platform: accounts.platform,
+        bannedAt: accounts.bannedAt,
+        createdAt: accounts.createdAt,
+      })
+      .from(accounts)
+      .innerJoin(
+        gameProgress,
+        and(eq(gameProgress.accountId, accounts.id), eq(gameProgress.gameId, gameId)),
+      )
+      .where(
+        and(
+          isNull(accounts.deletedAt),
+          cursor ? sql`${accounts.createdAt} < ${cursor}` : undefined,
+        ),
+      )
+      .orderBy(desc(accounts.createdAt))
+      .limit(limit + 1);
+
+    const page = rows.slice(0, limit);
+    const next = rows.length > limit ? page[page.length - 1]?.createdAt.toISOString() : null;
+    return { accounts: page, nextCursor: next };
+  }
+
   async getAccount(staff: StaffContext, accountId: string) {
     this.auth.requireRole(staff, ["owner", "support", "viewer"]);
     await this.auth.audit(staff.staffId, "read_account", "account", accountId, {});

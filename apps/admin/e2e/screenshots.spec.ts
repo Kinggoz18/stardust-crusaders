@@ -5,8 +5,252 @@ import path from "node:path";
 const widths = [360, 768, 1280] as const;
 const outDir = path.resolve(
   process.cwd(),
-  "../../.artifacts/20261009-1245-metrics/screenshots",
+  "../../.artifacts/20261009-1255-game-dashboards/screenshots",
 );
+
+const overviewBody = {
+  newAccounts: 3,
+  dau: 12,
+  wau: 40,
+  mau: 90,
+  stickiness: 0.13,
+  sessions: 28,
+  avgSessionSec: 180,
+  retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
+  series: [
+    { day: "2026-10-07", dau: 10, newAccounts: 2, sessions: 20 },
+    { day: "2026-10-08", dau: 12, newAccounts: 3, sessions: 28 },
+  ],
+};
+
+const gamesBody = {
+  games: [
+    {
+      id: "one-spark",
+      name: "One Spark",
+      draft: false,
+      summary: "Live fireworks puzzle. Stars, album and daily streak are ready to inspect.",
+    },
+    {
+      id: "loom-rush",
+      name: "Loom Rush",
+      draft: true,
+      summary: "Draft tray-match save. Level, wardrobe and boosters may still change.",
+    },
+    {
+      id: "borrowed-time",
+      name: "Borrowed Time",
+      draft: true,
+      summary: "Draft island snapshot. Era, debt and chronicle fields are provisional.",
+    },
+  ],
+};
+
+async function mockStudioApis(page: Page) {
+  await page.route("**/api/admin/v1/**", async (route) => {
+    const url = route.request().url();
+    if (url.includes("/metrics/overview")) {
+      await route.fulfill({ status: 200, body: JSON.stringify(overviewBody) });
+      return;
+    }
+    if (url.includes("/metrics/quality")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          accepted: 100,
+          duplicates: 5,
+          rejected: 2,
+          consentOptOuts: 1,
+          dedupeRate: 0.05,
+          series: [
+            { day: "2026-10-08", accepted: 100, duplicates: 5, rejected: 2, consentOptOuts: 1 },
+          ],
+        }),
+      });
+      return;
+    }
+    if (url.includes("/metrics/funnel") || url.includes("/metrics/difficulty")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          gameId: "one-spark",
+          levels: [
+            {
+              level: 1,
+              starts: 40,
+              wins: 36,
+              fails: 3,
+              quits: 1,
+              avgMovesLeft: 2.5,
+              stars: { s0: 0, s1: 4, s2: 12, s3: 20 },
+              winRate: 0.9,
+              bandMin: 0.92,
+              bandMax: 1,
+              inBand: false,
+            },
+          ],
+        }),
+      });
+      return;
+    }
+    if (url.includes("/metrics/economy")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          hintsCoins: 12,
+          hintsAds: 4,
+          coinIn: 100,
+          coinOut: 40,
+          balanceBuckets: [{ bucket: "10-49", accounts: 5 }],
+          byReason: [{ reason: "hint", deltaSum: -20 }],
+        }),
+      });
+      return;
+    }
+    if (url.includes("/metrics/ads")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          rewardedOffers: 10,
+          rewardedStarts: 8,
+          rewardedCompletions: 7,
+          completionRate: 0.875,
+          rewardsGranted: 7,
+          rewardRatePerUser: 0.5,
+          interstitialImpressions: 14,
+          interstitialPerSession: 0.5,
+          arpdau: null,
+          arpdauPending: true,
+          iapPurchasers: 1,
+          iapRevenueCents: 299,
+          payerShare: 0.08,
+          medianHoursToFirstPurchase: 12,
+        }),
+      });
+      return;
+    }
+    if (url.includes("/metrics/borrowed-time")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          eras: [{ era: "colony", reachers: 4, avgDebt: 10, avgBuildings: 2 }],
+          buildingsPlaced: 6,
+          avgSessionSec: 200,
+          sessions: 8,
+        }),
+      });
+      return;
+    }
+    if (url.includes("/metrics")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          newAccounts24h: 3,
+          dau: 12,
+          wau: 40,
+          mau: 90,
+          retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
+        }),
+      });
+      return;
+    }
+    if (url.includes("/games/") && url.includes("/players")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          accounts: [
+            {
+              id: "11111111-1111-1111-1111-111111111111",
+              deviceId: "demo-device",
+              email: null,
+              platform: "android",
+              bannedAt: null,
+              createdAt: "2026-10-01T12:00:00.000Z",
+            },
+          ],
+          nextCursor: null,
+        }),
+      });
+      return;
+    }
+    if (url.includes("/games")) {
+      await route.fulfill({ status: 200, body: JSON.stringify(gamesBody) });
+      return;
+    }
+    if (url.includes("/staff/invites")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          invites: [
+            {
+              id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+              email: "newbie@stardust.test",
+              role: "viewer",
+              expiresAt: "2026-10-12T12:00:00.000Z",
+              revokedAt: null,
+              acceptedAt: null,
+              createdAt: "2026-10-09T12:00:00.000Z",
+            },
+          ],
+        }),
+      });
+      return;
+    }
+    if (url.includes("/staff")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          staff: [
+            {
+              id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+              email: "owner@stardust.test",
+              role: "owner",
+              createdAt: "2026-10-01T12:00:00.000Z",
+              disabledAt: null,
+            },
+          ],
+        }),
+      });
+      return;
+    }
+    if (url.includes("/audit")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          entries: [
+            {
+              id: "a",
+              action: "search_accounts",
+              targetType: "account",
+              targetId: null,
+              createdAt: "2026-10-01T12:00:00.000Z",
+            },
+          ],
+        }),
+      });
+      return;
+    }
+    if (url.includes("/accounts/")) {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          account: {
+            id: "11111111-1111-1111-1111-111111111111",
+            deviceId: "demo-device",
+            email: null,
+            platform: "android",
+            bannedAt: null,
+            banReason: null,
+            createdAt: "2026-10-01T12:00:00.000Z",
+          },
+          progress: [{ gameId: "one-spark", revision: 2, document: { stars: {}, album: {} } }],
+        }),
+      });
+      return;
+    }
+    await route.fulfill({ status: 200, body: "{}" });
+  });
+}
 
 async function settle(page: Page) {
   await page.locator("body").evaluate(async () => {
@@ -175,229 +419,10 @@ test.describe("admin screenshots", () => {
     await axeOk(page);
   });
 
+
   test("other routes success", async ({ page }) => {
     await asStaff(page);
-    await page.route("**/api/admin/v1/**", async (route) => {
-      const url = route.request().url();
-      if (url.includes("/metrics/overview") || (url.includes("/metrics?") && url.includes("from="))) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            newAccounts: 3,
-            dau: 12,
-            wau: 40,
-            mau: 90,
-            stickiness: 0.13,
-            sessions: 28,
-            avgSessionSec: 180,
-            retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
-            series: [
-              { day: "2026-10-07", dau: 10, newAccounts: 2, sessions: 20 },
-              { day: "2026-10-08", dau: 12, newAccounts: 3, sessions: 28 },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/metrics/retention")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            cohorts: [
-              { cohortDay: "2026-09-01", cohortSize: 20, d1: 0.45, d7: 0.2, d30: 0.1 },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/metrics/funnel") || url.includes("/metrics/difficulty")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            gameId: "one-spark",
-            levels: [
-              {
-                level: 1,
-                starts: 40,
-                wins: 36,
-                fails: 3,
-                quits: 1,
-                avgMovesLeft: 2.5,
-                stars: { s0: 0, s1: 4, s2: 12, s3: 20 },
-                winRate: 0.9,
-                bandMin: 0.92,
-                bandMax: 1,
-                inBand: false,
-              },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/metrics/economy")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            hintsCoins: 12,
-            hintsAds: 4,
-            coinIn: 100,
-            coinOut: 40,
-            balanceBuckets: [{ bucket: "10-49", accounts: 5 }],
-            byReason: [{ reason: "hint", deltaSum: -20 }],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/metrics/ads")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            rewardedOffers: 10,
-            rewardedStarts: 8,
-            rewardedCompletions: 7,
-            completionRate: 0.875,
-            rewardsGranted: 7,
-            rewardRatePerUser: 0.5,
-            interstitialImpressions: 14,
-            interstitialPerSession: 0.5,
-            arpdau: null,
-            arpdauPending: true,
-            iapPurchasers: 1,
-            iapRevenueCents: 299,
-            payerShare: 0.08,
-            medianHoursToFirstPurchase: 12,
-          }),
-        });
-        return;
-      }
-      if (url.includes("/metrics/quality")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            accepted: 100,
-            duplicates: 5,
-            rejected: 2,
-            consentOptOuts: 1,
-            dedupeRate: 0.05,
-            series: [{ day: "2026-10-08", accepted: 100, duplicates: 5, rejected: 2, consentOptOuts: 1 }],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/metrics")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            newAccounts24h: 3,
-            dau: 12,
-            wau: 40,
-            mau: 90,
-            retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
-          }),
-        });
-        return;
-      }
-      if (url.includes("/games")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            games: [
-              {
-                id: "one-spark",
-                name: "One Spark",
-                draft: false,
-                summary: "Live fireworks puzzle. Stars, album and daily streak are ready to inspect.",
-              },
-              {
-                id: "loom-rush",
-                name: "Loom Rush",
-                draft: true,
-                summary: "Draft tray-match save. Level, wardrobe and boosters may still change.",
-              },
-              {
-                id: "borrowed-time",
-                name: "Borrowed Time",
-                draft: true,
-                summary: "Draft island snapshot. Era, debt and chronicle fields are provisional.",
-              },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/staff/invites")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            invites: [
-              {
-                id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-                email: "newbie@stardust.test",
-                role: "viewer",
-                expiresAt: "2026-10-12T12:00:00.000Z",
-                revokedAt: null,
-                acceptedAt: null,
-                createdAt: "2026-10-09T12:00:00.000Z",
-              },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/staff")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            staff: [
-              {
-                id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-                email: "owner@stardust.test",
-                role: "owner",
-                createdAt: "2026-10-01T12:00:00.000Z",
-                disabledAt: null,
-              },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/audit")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            entries: [
-              {
-                id: "a",
-                action: "search_accounts",
-                targetType: "account",
-                targetId: null,
-                createdAt: "2026-10-01T12:00:00.000Z",
-              },
-            ],
-          }),
-        });
-        return;
-      }
-      if (url.includes("/accounts/")) {
-        await route.fulfill({
-          status: 200,
-          body: JSON.stringify({
-            account: {
-              id: "11111111-1111-1111-1111-111111111111",
-              deviceId: "demo-device",
-              email: null,
-              platform: "android",
-              bannedAt: null,
-              banReason: null,
-              createdAt: "2026-10-01T12:00:00.000Z",
-            },
-            progress: [{ gameId: "one-spark", revision: 2, document: { stars: {}, album: {} } }],
-          }),
-        });
-        return;
-      }
-      await route.fulfill({ status: 200, body: "{}" });
-    });
+    await mockStudioApis(page);
 
     const routes = [
       ["/games", "Games", "games"],
@@ -422,19 +447,69 @@ test.describe("admin screenshots", () => {
     await axeOk(page);
   });
 
+  test("game dashboards at breakpoints", async ({ page }) => {
+    await asStaff(page);
+    await mockStudioApis(page);
+
+    const routes = [
+      ["/games/one-spark", "One Spark", "game-one-spark"],
+      ["/games/one-spark/levels", "One Spark", "game-one-spark-levels"],
+      ["/games/one-spark/curve", "One Spark", "game-one-spark-curve"],
+      ["/games/borrowed-time/island", "Borrowed Time", "game-borrowed-time-island"],
+      ["/games/loom-rush", "Loom Rush", "game-loom-rush"],
+    ] as const;
+
+    for (const [route, heading, slug] of routes) {
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(route);
+        await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+        if (route.includes("curve")) {
+          await expect(page.getByRole("heading", { name: "Level curve" })).toBeVisible();
+        }
+        if (route.includes("island")) {
+          await expect(page.getByRole("heading", { name: "Eras & debt" })).toBeVisible();
+        }
+        await settle(page);
+        await assertNoHorizontalScroll(page);
+        await page.screenshot({
+          path: path.join(outDir, `${slug}-${width}.png`),
+          fullPage: true,
+        });
+      }
+    }
+    await expect(page.getByText("Limited on iOS").first()).toBeVisible();
+    await axeOk(page);
+  });
+
   test("metrics loading empty success at breakpoints", async ({ page }) => {
     await asStaff(page);
 
-    await page.route("**/api/admin/v1/metrics/overview**", async (route) => {
+    await page.route("**/api/admin/v1/metrics/**", async (route) => {
       await new Promise((r) => setTimeout(r, 15_000));
     });
     await page.setViewportSize({ width: 768, height: 900 });
     await page.goto("/metrics");
     await expect(page.getByRole("heading", { name: "Trends", exact: true })).toBeVisible();
     await page.screenshot({ path: path.join(outDir, "metrics-loading-768.png"), fullPage: true });
-    await page.unroute("**/api/admin/v1/metrics/overview**");
+    await page.unroute("**/api/admin/v1/metrics/**");
 
-    await page.route("**/api/admin/v1/metrics/overview**", async (route) => {
+    await page.route("**/api/admin/v1/metrics/**", async (route) => {
+      const url = route.request().url();
+      if (url.includes("/quality")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            accepted: 0,
+            duplicates: 0,
+            rejected: 0,
+            consentOptOuts: 0,
+            dedupeRate: null,
+            series: [],
+          }),
+        });
+        return;
+      }
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -458,26 +533,8 @@ test.describe("admin screenshots", () => {
       await page.screenshot({ path: path.join(outDir, `metrics-empty-${width}.png`), fullPage: true });
     }
 
-    await page.unroute("**/api/admin/v1/metrics/overview**");
-    await page.route("**/api/admin/v1/metrics/overview**", async (route) => {
-      await route.fulfill({
-        status: 200,
-        body: JSON.stringify({
-          newAccounts: 3,
-          dau: 12,
-          wau: 40,
-          mau: 90,
-          stickiness: 0.13,
-          sessions: 28,
-          avgSessionSec: 180,
-          retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
-          series: [
-            { day: "2026-10-07", dau: 10, newAccounts: 2, sessions: 20 },
-            { day: "2026-10-08", dau: 12, newAccounts: 3, sessions: 28 },
-          ],
-        }),
-      });
-    });
+    await page.unroute("**/api/admin/v1/metrics/**");
+    await mockStudioApis(page);
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/metrics");
@@ -727,6 +784,34 @@ test.describe("admin screenshots", () => {
         });
         return;
       }
+      if (url.includes("/metrics/quality")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            accepted: 0,
+            duplicates: 0,
+            rejected: 0,
+            consentOptOuts: 0,
+            dedupeRate: null,
+            series: [],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/metrics/funnel") || url.includes("/metrics/difficulty")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({ gameId: "one-spark", levels: [] }),
+        });
+        return;
+      }
+      if (url.includes("/games/") && url.includes("/players")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({ accounts: [], nextCursor: null }),
+        });
+        return;
+      }
       if (url.includes("/games")) {
         await route.fulfill({
           status: 200,
@@ -817,6 +902,8 @@ test.describe("admin screenshots", () => {
       "/invite",
       "/accounts",
       "/games",
+      "/games/one-spark",
+      "/games/one-spark/levels",
       "/metrics",
       "/audit",
       "/settings/staff",

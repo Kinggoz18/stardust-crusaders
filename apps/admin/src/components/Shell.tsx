@@ -5,11 +5,11 @@ import { api } from "../lib/api";
 
 const links = [
   { to: "/accounts", label: "Players" },
-  { to: "/games", label: "Games" },
+  { to: "/games", label: "Games", prefix: true },
   { to: "/metrics", label: "Trends" },
   { to: "/audit", label: "Activity" },
   { to: "/settings/staff", label: "Staff" },
-];
+] as const;
 
 export function Shell() {
   const auth = useAuth();
@@ -70,7 +70,7 @@ export function Shell() {
             <NavLink
               key={l.to}
               to={l.to}
-              end={l.to !== "/metrics"}
+              end={!("prefix" in l && l.prefix)}
               className={({ isActive }) => (isActive ? "active" : undefined)}
             >
               {l.label}
@@ -107,7 +107,7 @@ export function Shell() {
             <NavLink
               key={l.to}
               to={l.to}
-              end={l.to !== "/metrics"}
+              end={!("prefix" in l && l.prefix)}
               className={({ isActive }) => (isActive ? "active" : undefined)}
             >
               {l.label}
