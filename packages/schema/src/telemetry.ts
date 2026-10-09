@@ -32,4 +32,10 @@ export const FUNNEL_EVENT_NAMES = [
   "level_fail",
   "quit_point",
   "tier_reached",
+  "hint_used",
+  "ad_rewarded_offer",
+  "ad_rewarded_start",
+  "ad_rewarded_complete",
+  "ad_interstitial_impression",
+  "install",
 ] as const;

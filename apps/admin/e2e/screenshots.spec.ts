@@ -5,7 +5,7 @@ import path from "node:path";
 const widths = [360, 768, 1280] as const;
 const outDir = path.resolve(
   process.cwd(),
-  "../../.artifacts/20261009-1205-admin-review/screenshots",
+  "../../.artifacts/20261009-1245-metrics/screenshots",
 );
 
 async function settle(page: Page) {
@@ -179,6 +179,111 @@ test.describe("admin screenshots", () => {
     await asStaff(page);
     await page.route("**/api/admin/v1/**", async (route) => {
       const url = route.request().url();
+      if (url.includes("/metrics/overview") || (url.includes("/metrics?") && url.includes("from="))) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            newAccounts: 3,
+            dau: 12,
+            wau: 40,
+            mau: 90,
+            stickiness: 0.13,
+            sessions: 28,
+            avgSessionSec: 180,
+            retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
+            series: [
+              { day: "2026-10-07", dau: 10, newAccounts: 2, sessions: 20 },
+              { day: "2026-10-08", dau: 12, newAccounts: 3, sessions: 28 },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/metrics/retention")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            cohorts: [
+              { cohortDay: "2026-09-01", cohortSize: 20, d1: 0.45, d7: 0.2, d30: 0.1 },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/metrics/funnel") || url.includes("/metrics/difficulty")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            gameId: "one-spark",
+            levels: [
+              {
+                level: 1,
+                starts: 40,
+                wins: 36,
+                fails: 3,
+                quits: 1,
+                avgMovesLeft: 2.5,
+                stars: { s0: 0, s1: 4, s2: 12, s3: 20 },
+                winRate: 0.9,
+                bandMin: 0.92,
+                bandMax: 1,
+                inBand: false,
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/metrics/economy")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            hintsCoins: 12,
+            hintsAds: 4,
+            coinIn: 100,
+            coinOut: 40,
+            balanceBuckets: [{ bucket: "10-49", accounts: 5 }],
+            byReason: [{ reason: "hint", deltaSum: -20 }],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/metrics/ads")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            rewardedOffers: 10,
+            rewardedStarts: 8,
+            rewardedCompletions: 7,
+            completionRate: 0.875,
+            rewardsGranted: 7,
+            rewardRatePerUser: 0.5,
+            interstitialImpressions: 14,
+            interstitialPerSession: 0.5,
+            arpdau: null,
+            arpdauPending: true,
+            iapPurchasers: 1,
+            iapRevenueCents: 299,
+            payerShare: 0.08,
+            medianHoursToFirstPurchase: 12,
+          }),
+        });
+        return;
+      }
+      if (url.includes("/metrics/quality")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            accepted: 100,
+            duplicates: 5,
+            rejected: 2,
+            consentOptOuts: 1,
+            dedupeRate: 0.05,
+            series: [{ day: "2026-10-08", accepted: 100, duplicates: 5, rejected: 2, consentOptOuts: 1 }],
+          }),
+        });
+        return;
+      }
       if (url.includes("/metrics")) {
         await route.fulfill({
           status: 200,
@@ -186,7 +291,8 @@ test.describe("admin screenshots", () => {
             newAccounts24h: 3,
             dau: 12,
             wau: 40,
-            retention: { d1: null, d7: null },
+            mau: 90,
+            retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
           }),
         });
         return;
@@ -312,6 +418,73 @@ test.describe("admin screenshots", () => {
           fullPage: true,
         });
       }
+    }
+    await axeOk(page);
+  });
+
+  test("metrics loading empty success at breakpoints", async ({ page }) => {
+    await asStaff(page);
+
+    await page.route("**/api/admin/v1/metrics/overview**", async (route) => {
+      await new Promise((r) => setTimeout(r, 15_000));
+    });
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto("/metrics");
+    await expect(page.getByRole("heading", { name: "Trends", exact: true })).toBeVisible();
+    await page.screenshot({ path: path.join(outDir, "metrics-loading-768.png"), fullPage: true });
+    await page.unroute("**/api/admin/v1/metrics/overview**");
+
+    await page.route("**/api/admin/v1/metrics/overview**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          newAccounts: 0,
+          dau: 0,
+          wau: 0,
+          mau: 0,
+          stickiness: null,
+          sessions: 0,
+          avgSessionSec: null,
+          retention: { d1: null, d7: null, d30: null },
+          series: [],
+        }),
+      });
+    });
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/metrics");
+      await expect(page.getByText("No traffic yet")).toBeVisible();
+      await settle(page);
+      await page.screenshot({ path: path.join(outDir, `metrics-empty-${width}.png`), fullPage: true });
+    }
+
+    await page.unroute("**/api/admin/v1/metrics/overview**");
+    await page.route("**/api/admin/v1/metrics/overview**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          newAccounts: 3,
+          dau: 12,
+          wau: 40,
+          mau: 90,
+          stickiness: 0.13,
+          sessions: 28,
+          avgSessionSec: 180,
+          retention: { d1: 0.4, d7: 0.2, d30: 0.1 },
+          series: [
+            { day: "2026-10-07", dau: 10, newAccounts: 2, sessions: 20 },
+            { day: "2026-10-08", dau: 12, newAccounts: 3, sessions: 28 },
+          ],
+        }),
+      });
+    });
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/metrics");
+      await expect(page.getByText("Daily players")).toBeVisible();
+      await settle(page);
+      await assertNoHorizontalScroll(page);
+      await page.screenshot({ path: path.join(outDir, `metrics-success-${width}.png`), fullPage: true });
     }
     await axeOk(page);
   });
@@ -524,6 +697,23 @@ test.describe("admin screenshots", () => {
     await page.setViewportSize({ width: 360, height: 900 });
     await page.route("**/api/admin/v1/**", async (route) => {
       const url = route.request().url();
+      if (url.includes("/metrics/overview") || url.includes("/metrics?")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            newAccounts: 0,
+            dau: 0,
+            wau: 0,
+            mau: 0,
+            stickiness: null,
+            sessions: 0,
+            avgSessionSec: null,
+            retention: { d1: null, d7: null, d30: null },
+            series: [],
+          }),
+        });
+        return;
+      }
       if (url.includes("/metrics")) {
         await route.fulfill({
           status: 200,
@@ -531,7 +721,8 @@ test.describe("admin screenshots", () => {
             newAccounts24h: 0,
             dau: 0,
             wau: 0,
-            retention: { d1: null, d7: null },
+            mau: 0,
+            retention: { d1: null, d7: null, d30: null },
           }),
         });
         return;

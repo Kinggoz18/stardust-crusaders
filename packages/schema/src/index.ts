@@ -76,6 +76,30 @@ export {
 } from "./telemetry.js";
 
 export {
+  TELEMETRY_EVENT_PROPS,
+  TELEMETRY_EVENT_NAMES,
+  parseTelemetryProps,
+  namedTelemetryEventSchema,
+  type TelemetryEventName,
+} from "./telemetry-events.js";
+
+export {
+  metricsFilterSchema,
+  metricsOverviewSchema,
+  metricsRetentionSchema,
+  metricsFunnelSchema,
+  metricsDifficultySchema,
+  metricsEconomySchema,
+  metricsAdsSchema,
+  metricsQualitySchema,
+  metricsBorrowedTimeSchema,
+  metricsLegacySummarySchema,
+} from "./metrics.js";
+
+export { TelemetryClient } from "./client/telemetry-client.js";
+export type { TelemetryTransport, TelemetryClientOptions } from "./client/telemetry-client.js";
+
+export {
   adProviderNameSchema,
   adRewardKindSchema,
   adFormatSchema,

@@ -12,6 +12,7 @@ import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
 import { registerAdsRoutes } from "./modules/ads/routes.js";
 import { registerIapRoutes } from "./modules/iap/routes.js";
 import { registerAdminRoutes } from "./modules/admin/routes.js";
+import { registerMetricsRoutes } from "./modules/metrics/routes.js";
 
 export async function buildServer(config: Config, ctx?: AppContext) {
   const app = Fastify({
@@ -56,6 +57,11 @@ export async function buildServer(config: Config, ctx?: AppContext) {
     await registerAdminRoutes(app, {
       adminAuth: ctx.adminAuth,
       admin: ctx.admin,
+      config,
+    });
+    await registerMetricsRoutes(app, {
+      adminAuth: ctx.adminAuth,
+      metrics: ctx.metrics,
       config,
     });
   }

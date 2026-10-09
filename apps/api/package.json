@@ -14,7 +14,8 @@
     "db:migrate": "bun run src/db/migrate.ts",
     "db:migrate:check": "bun run src/db/migrate-check.ts",
     "db:seed": "bun run src/db/seed.ts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "metrics:rollup": "bun run src/modules/metrics/cli.ts"
   },
   "dependencies": {
     "@stardust/schema": "workspace:*",

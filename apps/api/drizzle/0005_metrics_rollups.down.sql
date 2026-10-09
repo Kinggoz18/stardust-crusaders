@@ -1,0 +1,12 @@
+DROP INDEX IF EXISTS telemetry_events_name_ts_idx;
+DROP INDEX IF EXISTS telemetry_events_account_ts_idx;
+DROP TABLE IF EXISTS level_difficulty_bands;
+DROP TABLE IF EXISTS metrics_rollup_runs;
+DROP TABLE IF EXISTS metrics_quality_daily;
+DROP TABLE IF EXISTS metrics_iap_daily;
+DROP TABLE IF EXISTS metrics_ad_revenue_daily;
+DROP TABLE IF EXISTS metrics_ads_daily;
+DROP TABLE IF EXISTS metrics_economy_daily;
+DROP TABLE IF EXISTS metrics_level_daily;
+DROP TABLE IF EXISTS metrics_retention_cohort;
+DROP TABLE IF EXISTS metrics_daily;

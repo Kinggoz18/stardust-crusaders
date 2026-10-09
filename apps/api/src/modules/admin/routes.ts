@@ -143,12 +143,6 @@ export async function registerAdminRoutes(
     return deps.admin.resetProgress(staff, (req.params as { id: string }).id, gameId);
   });
 
-  app.get("/admin/v1/metrics", async (req, reply) => {
-    const staff = await requireStaff(req, deps);
-    if (!staff) return unauthorized(reply);
-    return deps.admin.metrics(staff);
-  });
-
   app.get("/admin/v1/audit", async (req, reply) => {
     const staff = await requireStaff(req, deps);
     if (!staff) return unauthorized(reply);

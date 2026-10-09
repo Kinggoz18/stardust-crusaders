@@ -1,6 +1,7 @@
-import { postEventsRequestSchema } from "@stardust/schema";
+import { parseTelemetryProps, postEventsRequestSchema } from "@stardust/schema";
+import { sql } from "drizzle-orm";
 import type { Db } from "../../db/client.js";
-import { telemetryEvents } from "../../db/schema.js";
+import { metricsQualityDaily, telemetryEvents } from "../../db/schema.js";
 
 const MAX_PROPS_BYTES = 8 * 1024;
 
@@ -10,6 +11,7 @@ export class TelemetryService {
   async ingest(accountId: string | null, raw: unknown) {
     const body = postEventsRequestSchema.parse(raw);
     if (!body.consentAnalytics) {
+      await this.bumpQuality({ consentOptOuts: body.events.length, rejected: body.events.length });
       return { accepted: 0, duplicates: 0, rejected: body.events.length };
     }
 
@@ -18,7 +20,13 @@ export class TelemetryService {
     let rejected = 0;
 
     for (const event of body.events) {
-      const propsSize = Buffer.byteLength(JSON.stringify(event.props ?? {}), "utf8");
+      const propsCheck = parseTelemetryProps(event.name, event.props ?? {});
+      if (!propsCheck.ok) {
+        rejected += 1;
+        continue;
+      }
+      const props = propsCheck.props;
+      const propsSize = Buffer.byteLength(JSON.stringify(props), "utf8");
       if (propsSize > MAX_PROPS_BYTES) {
         rejected += 1;
         continue;
@@ -30,7 +38,7 @@ export class TelemetryService {
           gameId: event.gameId ?? null,
           name: event.name,
           sessionId: event.sessionId ?? null,
-          props: event.props ?? {},
+          props,
           ts: new Date(event.ts),
         });
         accepted += 1;
@@ -44,6 +52,34 @@ export class TelemetryService {
       }
     }
 
+    await this.bumpQuality({ accepted, duplicates, rejected });
     return { accepted, duplicates, rejected };
+  }
+
+  private async bumpQuality(delta: {
+    accepted?: number;
+    duplicates?: number;
+    rejected?: number;
+    consentOptOuts?: number;
+  }) {
+    const day = new Date().toISOString().slice(0, 10);
+    await this.db
+      .insert(metricsQualityDaily)
+      .values({
+        day,
+        accepted: delta.accepted ?? 0,
+        duplicates: delta.duplicates ?? 0,
+        rejected: delta.rejected ?? 0,
+        consentOptOuts: delta.consentOptOuts ?? 0,
+      })
+      .onConflictDoUpdate({
+        target: metricsQualityDaily.day,
+        set: {
+          accepted: sql`${metricsQualityDaily.accepted} + ${delta.accepted ?? 0}`,
+          duplicates: sql`${metricsQualityDaily.duplicates} + ${delta.duplicates ?? 0}`,
+          rejected: sql`${metricsQualityDaily.rejected} + ${delta.rejected ?? 0}`,
+          consentOptOuts: sql`${metricsQualityDaily.consentOptOuts} + ${delta.consentOptOuts ?? 0}`,
+        },
+      });
   }
 }

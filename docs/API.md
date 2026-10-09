@@ -54,7 +54,15 @@ Requires staff session (cookie `stardust_staff` or `Authorization: Bearer`). In 
 | POST | `/admin/v1/accounts/:id/unban` | owner, support | audited |
 | POST | `/admin/v1/accounts/:id/games/:gameId/reset` | owner | backup row; audited |
 | GET | `/admin/v1/games` | all | registry |
-| GET | `/admin/v1/metrics` | all | DAU/WAU stub retention |
+| GET | `/admin/v1/metrics` | all | Legacy summary: DAU/WAU/MAU + real retention |
+| GET | `/admin/v1/metrics/overview` | all | Key numbers + series (`from`,`to`,`gameId?`,`platform?`) |
+| GET | `/admin/v1/metrics/retention` | all | Cohort table D1/D7/D30 |
+| GET | `/admin/v1/metrics/funnel` | all | Level funnel (requires `gameId`) |
+| GET | `/admin/v1/metrics/difficulty` | all | Win rate vs designed band (requires `gameId`) |
+| GET | `/admin/v1/metrics/economy` | all | Hints, coin flow, balances |
+| GET | `/admin/v1/metrics/ads` | all | Ads + IAP; ARPDAU pending AdMob reports |
+| GET | `/admin/v1/metrics/quality` | all | Ingest accepts/dupes/rejects/opt-outs |
+| GET | `/admin/v1/metrics/borrowed-time` | all | Era, buildings, session pacing |
 | GET | `/admin/v1/audit` | owner, support | |
 
 ## Schemas

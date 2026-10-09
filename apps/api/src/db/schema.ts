@@ -1,9 +1,13 @@
 import {
+  bigint,
   boolean,
+  date,
+  doublePrecision,
   integer,
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -265,6 +269,134 @@ export const schemaMigrations = pgTable("schema_migrations", {
   id: varchar("id", { length: 128 }).primaryKey(),
   appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const metricsDaily = pgTable(
+  "metrics_daily",
+  {
+    day: date("day").notNull(),
+    gameId: varchar("game_id", { length: 32 }).notNull().default(""),
+    platform: varchar("platform", { length: 16 }).notNull().default(""),
+    newAccounts: integer("new_accounts").notNull().default(0),
+    dau: integer("dau").notNull().default(0),
+    wau: integer("wau").notNull().default(0),
+    mau: integer("mau").notNull().default(0),
+    sessions: integer("sessions").notNull().default(0),
+    sessionSecondsSum: bigint("session_seconds_sum", { mode: "number" }).notNull().default(0),
+    sessionEndCount: integer("session_end_count").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId, t.platform] })],
+);
+
+export const metricsRetentionCohort = pgTable(
+  "metrics_retention_cohort",
+  {
+    cohortDay: date("cohort_day").notNull(),
+    gameId: varchar("game_id", { length: 32 }).notNull().default(""),
+    platform: varchar("platform", { length: 16 }).notNull().default(""),
+    cohortSize: integer("cohort_size").notNull().default(0),
+    returnedD1: integer("returned_d1").notNull().default(0),
+    returnedD7: integer("returned_d7").notNull().default(0),
+    returnedD30: integer("returned_d30").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.cohortDay, t.gameId, t.platform] })],
+);
+
+export const metricsLevelDaily = pgTable(
+  "metrics_level_daily",
+  {
+    day: date("day").notNull(),
+    gameId: gameIdEnum("game_id").notNull(),
+    level: integer("level").notNull(),
+    starts: integer("starts").notNull().default(0),
+    wins: integer("wins").notNull().default(0),
+    fails: integer("fails").notNull().default(0),
+    quits: integer("quits").notNull().default(0),
+    movesLeftSum: integer("moves_left_sum").notNull().default(0),
+    movesLeftN: integer("moves_left_n").notNull().default(0),
+    stars0: integer("stars_0").notNull().default(0),
+    stars1: integer("stars_1").notNull().default(0),
+    stars2: integer("stars_2").notNull().default(0),
+    stars3: integer("stars_3").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId, t.level] })],
+);
+
+export const metricsEconomyDaily = pgTable(
+  "metrics_economy_daily",
+  {
+    day: date("day").notNull(),
+    gameId: varchar("game_id", { length: 32 }).notNull().default(""),
+    hintsCoins: integer("hints_coins").notNull().default(0),
+    hintsAds: integer("hints_ads").notNull().default(0),
+    coinIn: integer("coin_in").notNull().default(0),
+    coinOut: integer("coin_out").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId] })],
+);
+
+export const metricsAdsDaily = pgTable(
+  "metrics_ads_daily",
+  {
+    day: date("day").notNull(),
+    gameId: varchar("game_id", { length: 32 }).notNull().default(""),
+    rewardedOffers: integer("rewarded_offers").notNull().default(0),
+    rewardedStarts: integer("rewarded_starts").notNull().default(0),
+    rewardedCompletions: integer("rewarded_completions").notNull().default(0),
+    rewardsGranted: integer("rewards_granted").notNull().default(0),
+    interstitialImpressions: integer("interstitial_impressions").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId] })],
+);
+
+export const metricsAdRevenueDaily = pgTable(
+  "metrics_ad_revenue_daily",
+  {
+    day: date("day").notNull(),
+    gameId: varchar("game_id", { length: 32 }).notNull().default(""),
+    revenueMicros: bigint("revenue_micros", { mode: "number" }).notNull().default(0),
+    impressions: integer("impressions").notNull().default(0),
+    source: varchar("source", { length: 32 }).notNull().default("pending"),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId] })],
+);
+
+export const metricsIapDaily = pgTable(
+  "metrics_iap_daily",
+  {
+    day: date("day").notNull(),
+    gameId: varchar("game_id", { length: 32 }).notNull().default(""),
+    purchasers: integer("purchasers").notNull().default(0),
+    revenueCents: integer("revenue_cents").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId] })],
+);
+
+export const metricsQualityDaily = pgTable("metrics_quality_daily", {
+  day: date("day").primaryKey(),
+  accepted: integer("accepted").notNull().default(0),
+  duplicates: integer("duplicates").notNull().default(0),
+  rejected: integer("rejected").notNull().default(0),
+  consentOptOuts: integer("consent_opt_outs").notNull().default(0),
+});
+
+export const metricsRollupRuns = pgTable("metrics_rollup_runs", {
+  day: date("day").primaryKey(),
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  status: varchar("status", { length: 32 }).notNull().default("running"),
+  detail: jsonb("detail").notNull().default({}),
+});
+
+export const levelDifficultyBands = pgTable(
+  "level_difficulty_bands",
+  {
+    gameId: gameIdEnum("game_id").notNull(),
+    level: integer("level").notNull(),
+    winRateMin: doublePrecision("win_rate_min").notNull(),
+    winRateMax: doublePrecision("win_rate_max").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.gameId, t.level] })],
+);
 
 export type Account = typeof accounts.$inferSelect;
 export type StaffUser = typeof staffUsers.$inferSelect;
