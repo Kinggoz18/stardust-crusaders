@@ -740,6 +740,20 @@ td {
     padding: var(--space-4);
     overflow-x: hidden;
   }
+  .metrics-tabs a,
+  .game-tabs a {
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+  .game-dash-header {
+    flex-direction: column;
+  }
+  .game-switcher {
+    width: 100%;
+  }
+  .facts.wide {
+    grid-template-columns: 1fr;
+  }
   .player-cards {
     display: grid;
   }
@@ -868,10 +882,20 @@ td {
 }
 
 .table-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-4);
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap .data-table {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
 }
 
 .data-table {
@@ -932,12 +956,35 @@ td {
   white-space: nowrap;
 }
 
+.shell,
+main,
+.page,
+.game-dash,
+.game-section,
+.metrics-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.game-dash {
+  overflow-x: clip;
+}
+
 .game-dash-header {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  max-width: 100%;
+}
+
+.game-tabs {
+  max-width: 100%;
+}
+
+.game-tabs a {
+  max-width: 100%;
 }
 
 .eyebrow {
@@ -953,7 +1000,9 @@ td {
   gap: var(--space-1);
   font-size: var(--text-sm);
   color: var(--color-ink-muted);
-  min-width: 12rem;
+  min-width: min(12rem, 100%);
+  max-width: 100%;
+  flex: 1 1 12rem;
 }
 
 .game-switcher select {
