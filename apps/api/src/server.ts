@@ -11,6 +11,7 @@ import { registerWalletRoutes } from "./modules/wallet/routes.js";
 import { registerTelemetryRoutes } from "./modules/telemetry/routes.js";
 import { registerAdsRoutes } from "./modules/ads/routes.js";
 import { registerIapRoutes } from "./modules/iap/routes.js";
+import { registerAdminRoutes } from "./modules/admin/routes.js";
 
 export async function buildServer(config: Config, ctx?: AppContext) {
   const app = Fastify({
@@ -52,6 +53,11 @@ export async function buildServer(config: Config, ctx?: AppContext) {
     await registerTelemetryRoutes(app, { telemetry: ctx.telemetry, config });
     await registerAdsRoutes(app, { ads: ctx.ads });
     await registerIapRoutes(app, { iap: ctx.iap });
+    await registerAdminRoutes(app, {
+      adminAuth: ctx.adminAuth,
+      admin: ctx.admin,
+      config,
+    });
   }
 
   app.setErrorHandler((err: Error & { statusCode?: number; code?: string }, _req, reply) => {

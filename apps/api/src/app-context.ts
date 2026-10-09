@@ -7,6 +7,8 @@ import { TelemetryService } from "./modules/telemetry/service.js";
 import { AdsService } from "./modules/ads/service.js";
 import { createAdProvider } from "./modules/ads/provider.js";
 import { IapService } from "./modules/iap/service.js";
+import { AdminAuthService } from "./modules/admin/auth.js";
+import { AdminService } from "./modules/admin/service.js";
 
 export type AppContext = {
   config: Config;
@@ -18,12 +20,15 @@ export type AppContext = {
   telemetry: TelemetryService;
   ads: AdsService;
   iap: IapService;
+  adminAuth: AdminAuthService;
+  admin: AdminService;
 };
 
 export function createAppContext(config: Config, databaseUrl = config.DATABASE_URL): AppContext {
   const { db, sql } = createDb(databaseUrl);
   const wallet = new WalletService(db);
   const adProvider = createAdProvider(config.AD_PROVIDER, config.AD_PROVIDER_SIGNING_SECRET);
+  const adminAuth = new AdminAuthService(db);
   return {
     config,
     db,
@@ -34,5 +39,7 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     telemetry: new TelemetryService(db),
     ads: new AdsService(db, adProvider, wallet),
     iap: new IapService(db, config.REVENUECAT_WEBHOOK_SECRET),
+    adminAuth,
+    admin: new AdminService(db, adminAuth),
   };
 }

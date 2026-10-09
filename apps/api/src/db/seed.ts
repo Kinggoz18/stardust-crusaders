@@ -109,5 +109,21 @@ for (const s of seeds) {
     .onConflictDoNothing();
 }
 
+// Staff owner for local admin (TOTP secret printed once — test only).
+import { AdminAuthService } from "../modules/admin/auth.js";
+const adminAuth = new AdminAuthService(db);
+const existingStaff = await db.query.staffUsers.findFirst({
+  where: (t, { eq }) => eq(t.email, "owner@stardust.local"),
+});
+if (!existingStaff) {
+  const staff = await adminAuth.createStaff({
+    email: "owner@stardust.local",
+    password: "local-dev-password",
+    role: "owner",
+  });
+  console.log("seed: staff owner@stardust.local / local-dev-password");
+  console.log("seed: totp secret (test only):", staff.totpSecret);
+}
+
 console.log("seed: fake accounts marked with device id prefix", FAKE_PREFIX);
 await sql.end({ timeout: 5 });
