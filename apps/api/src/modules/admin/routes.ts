@@ -30,9 +30,20 @@ export async function registerAdminRoutes(
 
   app.post("/admin/v1/auth/login", async (req, reply) => {
     const result = await deps.adminAuth.login(req.body);
-    if (!result) {
+    if (!result.ok) {
+      if (result.reason === "totp") {
+        return reply.status(401).send({
+          error: {
+            code: "invalid_totp",
+            message: "That authenticator code did not work. Try a fresh one.",
+          },
+        });
+      }
       return reply.status(401).send({
-        error: { code: "invalid_credentials", message: "Check your email, password and code." },
+        error: {
+          code: "invalid_credentials",
+          message: "Check your email and password, then try again.",
+        },
       });
     }
     reply.header(

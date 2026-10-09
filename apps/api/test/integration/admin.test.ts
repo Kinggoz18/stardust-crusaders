@@ -27,7 +27,19 @@ function totpCode(secret: string) {
 describe("admin api", () => {
   test("login requires valid totp", async () => {
     const staff = await seedOwner();
-    const bad = await harness.app.inject({
+    const badPassword = await harness.app.inject({
+      method: "POST",
+      url: "/admin/v1/auth/login",
+      payload: {
+        email: staff.email,
+        password: "wrong-password-xx",
+        totpCode: "000000",
+      },
+    });
+    expect(badPassword.statusCode).toBe(401);
+    expect(badPassword.json().error.code).toBe("invalid_credentials");
+
+    const badTotp = await harness.app.inject({
       method: "POST",
       url: "/admin/v1/auth/login",
       payload: {
@@ -36,7 +48,9 @@ describe("admin api", () => {
         totpCode: "000000",
       },
     });
-    expect(bad.statusCode).toBe(401);
+    expect(badTotp.statusCode).toBe(401);
+    expect(badTotp.json().error.code).toBe("invalid_totp");
+    expect(badTotp.json().error.message).toContain("authenticator");
 
     const ok = await harness.app.inject({
       method: "POST",

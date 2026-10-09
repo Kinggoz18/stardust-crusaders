@@ -335,6 +335,118 @@ test.describe("admin screenshots", () => {
     await expect(dialog).toBeHidden();
   });
 
+  test("missing states: loading, detail empty/error, login errors", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+
+    await page.route("**/api/admin/v1/auth/login", async (route) => {
+      const body = route.request().postDataJSON() as { password?: string; totpCode?: string };
+      if (body.password === "bad-pass") {
+        await route.fulfill({
+          status: 401,
+          body: JSON.stringify({
+            error: {
+              code: "invalid_credentials",
+              message: "Check your email and password, then try again.",
+            },
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 401,
+        body: JSON.stringify({
+          error: {
+            code: "invalid_totp",
+            message: "That authenticator code did not work. Try a fresh one.",
+          },
+        }),
+      });
+    });
+
+    await page.goto("/login");
+    await page.getByLabel("Work email").fill("owner@stardust.test");
+    await page.getByLabel("Password").fill("bad-pass");
+    await page.getByLabel("Authenticator code").fill("123456");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByRole("alert")).toContainText("email and password");
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "login-error-768.png"), fullPage: true });
+
+    await page.getByLabel("Password").fill("good-password-ok");
+    await page.getByLabel("Authenticator code").fill("000000");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByRole("alert")).toContainText("authenticator code");
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "login-2fa-failure-768.png"), fullPage: true });
+
+    await asStaff(page);
+
+    await page.route("**/api/admin/v1/accounts**", async (route) => {
+      if (!route.request().url().includes("/accounts/")) {
+        await new Promise(() => undefined);
+        return;
+      }
+      await route.fallback();
+    });
+    await page.goto("/accounts");
+    await expect(page.getByLabel("Loading")).toBeVisible();
+    await settle(page);
+    await page.screenshot({ path: path.join(outDir, "accounts-loading-768.png"), fullPage: true });
+
+    await page.unroute("**/api/admin/v1/accounts**");
+    await page.route("**/api/admin/v1/accounts/**", async (route) => {
+      await route.fulfill({
+        status: 404,
+        body: JSON.stringify({
+          error: { code: "not_found", message: "Player not found." },
+        }),
+      });
+    });
+    await page.goto("/accounts/11111111-1111-1111-1111-111111111111");
+    await expect(page.getByRole("heading", { name: "Could not load" })).toBeVisible();
+    await expect(page.getByText("Player not found.")).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "account-detail-error-768.png"),
+      fullPage: true,
+    });
+
+    await page.unroute("**/api/admin/v1/accounts/**");
+    await page.route("**/api/admin/v1/accounts/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        body: JSON.stringify({
+          account: {
+            id: "11111111-1111-1111-1111-111111111111",
+            deviceId: "lonely-device",
+            email: null,
+            platform: "ios",
+            bannedAt: null,
+            banReason: null,
+            createdAt: "2026-10-01T12:00:00.000Z",
+          },
+          progress: [],
+        }),
+      });
+    });
+    await page.goto("/accounts/11111111-1111-1111-1111-111111111111");
+    await expect(page.getByText("No game progress yet.")).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "account-detail-empty-768.png"),
+      fullPage: true,
+    });
+
+    await page.goto("/accounts/11111111-1111-1111-1111-111111111111/games/one-spark");
+    await expect(page.getByRole("heading", { name: "One Spark" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "No progress" })).toBeVisible();
+    await settle(page);
+    await page.screenshot({
+      path: path.join(outDir, "account-game-empty-768.png"),
+      fullPage: true,
+    });
+  });
+
   test("no horizontal page scroll at 360 on every route", async ({ page }) => {
     await asStaff(page);
     await page.setViewportSize({ width: 360, height: 900 });

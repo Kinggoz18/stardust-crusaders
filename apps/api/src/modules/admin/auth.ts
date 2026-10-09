@@ -58,14 +58,17 @@ export class AdminAuthService {
     };
   }
 
-  async login(raw: unknown) {
+  async login(raw: unknown): Promise<
+    | { ok: true; token: string; role: StaffRole; expiresAt: string; sessionId: string }
+    | { ok: false; reason: "credentials" | "totp" }
+  > {
     const body = staffLoginRequestSchema.parse(raw);
     const staff = await this.db.query.staffUsers.findFirst({
       where: and(eq(staffUsers.email, body.email.toLowerCase()), isNull(staffUsers.disabledAt)),
     });
-    if (!staff) return null;
+    if (!staff) return { ok: false, reason: "credentials" };
     const ok = await Bun.password.verify(body.password, staff.passwordHash);
-    if (!ok) return null;
+    if (!ok) return { ok: false, reason: "credentials" };
 
     const totp = new OTPAuth.TOTP({
       issuer: "Stardust Crusaders",
@@ -76,7 +79,7 @@ export class AdminAuthService {
       secret: OTPAuth.Secret.fromBase32(staff.totpSecret),
     });
     const delta = totp.validate({ token: body.totpCode, window: 1 });
-    if (delta === null) return null;
+    if (delta === null) return { ok: false, reason: "totp" };
 
     const token = randomToken(32);
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
@@ -92,6 +95,7 @@ export class AdminAuthService {
     await this.audit(staff.id, "login", "staff", staff.id, {});
 
     return {
+      ok: true,
       token,
       role: staff.role as StaffRole,
       expiresAt: expiresAt.toISOString(),
