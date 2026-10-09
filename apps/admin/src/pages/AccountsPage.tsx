@@ -62,6 +62,13 @@ export function AccountsPage() {
         </label>
         <input id="q" name="q" defaultValue={q} placeholder="Search players" />
         <button type="submit">Search</button>
+        <button
+          type="button"
+          className="ghost sort-control"
+          onClick={() => setSort(sort === "newest" ? "oldest" : "newest")}
+        >
+          {sort === "newest" ? "Newest first" : "Oldest first"}
+        </button>
       </form>
 
       {error ? <ErrorState message={error} onRetry={() => void load(q)} /> : null}
@@ -71,41 +78,65 @@ export function AccountsPage() {
       ) : null}
 
       {!error && rows && rows.length > 0 ? (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  <button type="button" className="sort" onClick={() => setSort(sort === "newest" ? "oldest" : "newest")}>
-                    Joined {sort === "newest" ? "↓" : "↑"}
-                  </button>
-                </th>
-                <th scope="col">Device</th>
-                <th scope="col">Email</th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <Link to={`/accounts/${row.id}`}>
-                      {new Date(row.createdAt).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos" })}
-                    </Link>
-                  </td>
-                  <td>{row.deviceId}</td>
-                  <td>{row.email ?? "—"}</td>
-                  <td>{row.bannedAt ? "Blocked" : "Active"}</td>
+        <>
+          <ul className="player-cards">
+            {shown.map((row) => (
+              <li key={row.id}>
+                <Link to={`/accounts/${row.id}`} className="player-card">
+                  <span className="player-card-title">{row.email ?? row.deviceId}</span>
+                  <span className="player-card-meta">
+                    {new Date(row.createdAt).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos" })}
+                    {" · "}
+                    {row.bannedAt ? "Blocked" : "Active"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <div className="table-wrap player-table">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="sort"
+                      onClick={() => setSort(sort === "newest" ? "oldest" : "newest")}
+                    >
+                      Joined {sort === "newest" ? "↓" : "↑"}
+                    </button>
+                  </th>
+                  <th scope="col">Device</th>
+                  <th scope="col" className="col-secondary">
+                    Email
+                  </th>
+                  <th scope="col">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {shown.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <Link to={`/accounts/${row.id}`}>
+                        {new Date(row.createdAt).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos" })}
+                      </Link>
+                    </td>
+                    <td className="cell-clip">{row.deviceId}</td>
+                    <td className="col-secondary cell-clip">{row.email ?? "—"}</td>
+                    <td>{row.bannedAt ? "Blocked" : "Active"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           {cursor ? (
             <button type="button" className="ghost" onClick={() => void load(q, cursor, true)}>
               Load more
             </button>
           ) : null}
-        </div>
+        </>
       ) : null}
     </section>
   );

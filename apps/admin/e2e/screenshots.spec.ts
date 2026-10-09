@@ -5,13 +5,21 @@ import path from "node:path";
 const widths = [360, 768, 1280] as const;
 const outDir = path.resolve(
   process.cwd(),
-  "../../.artifacts/20261009-1200-admin-ui/screenshots",
+  "../../.artifacts/20261009-1205-admin-review/screenshots",
 );
 
 async function settle(page: Page) {
   await page.locator("body").evaluate(async () => {
     await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined)));
   });
+}
+
+async function assertNoHorizontalScroll(page: Page) {
+  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
 }
 
 async function axeOk(page: Page) {
@@ -106,8 +114,9 @@ test.describe("admin screenshots", () => {
 
       await mockAccounts(page, "success");
       await page.goto("/accounts");
-      await expect(page.getByText("demo-device")).toBeVisible();
+      await expect(page.getByText("demo-device").locator("visible=true").first()).toBeVisible();
       await settle(page);
+      await assertNoHorizontalScroll(page);
       await page.screenshot({ path: path.join(outDir, `accounts-success-${width}.png`), fullPage: true });
     }
     await axeOk(page);
@@ -210,8 +219,109 @@ test.describe("admin screenshots", () => {
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
-    // Eventually land on search or nav; assert search is reachable
     await page.getByLabel("Search players").focus();
     await expect(page.getByLabel("Search players")).toBeFocused();
+  });
+
+  test("no horizontal page scroll at 360 on every route", async ({ page }) => {
+    await asStaff(page);
+    await page.setViewportSize({ width: 360, height: 900 });
+    await page.route("**/api/admin/v1/**", async (route) => {
+      const url = route.request().url();
+      if (url.includes("/metrics")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            newAccounts24h: 0,
+            dau: 0,
+            wau: 0,
+            retention: { d1: null, d7: null },
+          }),
+        });
+        return;
+      }
+      if (url.includes("/games")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            games: [
+              { id: "one-spark", name: "One Spark" },
+              { id: "loom-rush", name: "Loom Rush" },
+              { id: "borrowed-time", name: "Borrowed Time" },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/audit")) {
+        await route.fulfill({ status: 200, body: JSON.stringify({ entries: [] }) });
+        return;
+      }
+      if (url.includes("/accounts/") && !url.endsWith("/accounts")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            account: {
+              id: "11111111-1111-1111-1111-111111111111",
+              deviceId: "demo-device-long-enough-to-stress-layout",
+              email: null,
+              platform: "android",
+              bannedAt: null,
+              banReason: null,
+              createdAt: "2026-10-01T12:00:00.000Z",
+            },
+            progress: [
+              {
+                gameId: "one-spark",
+                revision: 2,
+                document: { stars: { "1": [true, false, false] }, album: {} },
+              },
+            ],
+          }),
+        });
+        return;
+      }
+      if (url.includes("/accounts")) {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify({
+            accounts: [
+              {
+                id: "11111111-1111-1111-1111-111111111111",
+                deviceId: "demo-device-long-enough-to-stress-layout",
+                email: null,
+                platform: "android",
+                bannedAt: null,
+                createdAt: "2026-10-01T12:00:00.000Z",
+              },
+            ],
+            nextCursor: null,
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, body: "{}" });
+    });
+
+    const routes = [
+      "/login",
+      "/accounts",
+      "/games",
+      "/metrics",
+      "/audit",
+      "/settings/staff",
+      "/accounts/11111111-1111-1111-1111-111111111111",
+      "/accounts/11111111-1111-1111-1111-111111111111/games/one-spark",
+    ];
+
+    for (const route of routes) {
+      if (route === "/login") {
+        await page.goto(route);
+      } else {
+        await page.goto(route);
+      }
+      await settle(page);
+      await assertNoHorizontalScroll(page);
+    }
   });
 });
