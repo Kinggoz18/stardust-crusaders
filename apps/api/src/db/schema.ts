@@ -167,7 +167,39 @@ export const adUnits = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [uniqueIndex("ad_units_game_format_uidx").on(t.gameId, t.format)],
+  (t) => [primaryKey({ columns: [t.gameId, t.format] })],
+);
+
+/** Singleton global switches for house ads. */
+export const houseAdsGlobal = pgTable("house_ads_global", {
+  id: integer("id").primaryKey().default(1),
+  enabled: boolean("enabled").notNull().default(false),
+  killSwitch: boolean("kill_switch").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const houseAdsGame = pgTable("house_ads_game", {
+  gameId: gameIdEnum("game_id").primaryKey(),
+  enabled: boolean("enabled").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const houseAds = pgTable(
+  "house_ads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    promotedGame: gameIdEnum("promoted_game").notNull(),
+    creativeRef: varchar("creative_ref", { length: 256 }).notNull(),
+    targetGames: gameIdEnum("target_games").array().notNull(),
+    platform: varchar("platform", { length: 16 }),
+    enabled: boolean("enabled").notNull().default(false),
+    maxPerSession: integer("max_per_session").notNull().default(1),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("house_ads_enabled_idx").on(t.enabled)],
 );
 
 export const iapWebhookEvents = pgTable("iap_webhook_events", {

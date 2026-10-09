@@ -26,7 +26,7 @@ Consistent errors:
 | POST | `/v1/events` | optional Bearer | `postEventsRequestSchema`; consent + dedupe |
 | POST | `/v1/ads/reward-callback` | signature | Generic HMAC body (`adRewardCallbackSchema`) when `AD_PROVIDER=generic` |
 | GET | `/v1/ads/reward-callback` | AdMob SSV | Query-string ECDSA callback; idempotent by `transaction_id` |
-| GET | `/v1/ads/config?gameId=` | Bearer | Per-game AdMob units + transition-based interstitial pacing (`adConfigResponseSchema`) |
+| GET | `/v1/ads/config?gameId=` | Bearer | Per-game units, interstitial/rewarded pacing, and house-ad offers (`adConfigResponseSchema`). House ads off by default; never self-promote. |
 | POST | `/v1/webhooks/revenuecat` | HMAC header | sandbox stub; idempotent by event id |
 
 `gameId`: `one-spark` \| `loom-rush` \| `borrowed-time`.
@@ -64,6 +64,13 @@ Requires staff session (cookie `stardust_staff` or `Authorization: Bearer`). In 
 | GET | `/admin/v1/metrics/ads` | all | Ads + IAP; ARPDAU pending AdMob reports |
 | GET | `/admin/v1/metrics/quality` | all | Ingest accepts/dupes/rejects/opt-outs |
 | GET | `/admin/v1/metrics/borrowed-time` | all | Era, buildings, session pacing |
+| GET | `/admin/v1/games/:gameId/ads/settings` | owner, support | Network ad enable/frequency/unit ids + per-game house opt-in |
+| PUT | `/admin/v1/games/:gameId/ads/settings` | owner, support | Update settings; audited (`ad_settings_update`) |
+| GET | `/admin/v1/ads/house` | owner, support | Global switches + registry |
+| PUT | `/admin/v1/ads/house/global` | owner (enable); owner/support (kill) | Studio on needs owner; kill switch instant off; audited |
+| POST | `/admin/v1/ads/house` | owner, support | Create house ad (own games only; no self-target); audited |
+| PATCH | `/admin/v1/ads/house/:id` | owner, support | Update house ad; audited |
+| DELETE | `/admin/v1/ads/house/:id` | owner, support | Delete house ad; audited |
 | GET | `/admin/v1/audit` | owner, support | |
 
 ## Schemas

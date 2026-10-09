@@ -5,6 +5,7 @@ import { ProgressService } from "./modules/progress/service.js";
 import { WalletService } from "./modules/wallet/service.js";
 import { TelemetryService } from "./modules/telemetry/service.js";
 import { AdsService } from "./modules/ads/service.js";
+import { AdControlsService } from "./modules/ads/controls.js";
 import { createAdProvider } from "./modules/ads/provider.js";
 import { IapService } from "./modules/iap/service.js";
 import { AdminAuthService } from "./modules/admin/auth.js";
@@ -20,6 +21,7 @@ export type AppContext = {
   wallet: WalletService;
   telemetry: TelemetryService;
   ads: AdsService;
+  adControls: AdControlsService;
   iap: IapService;
   adminAuth: AdminAuthService;
   admin: AdminService;
@@ -45,6 +47,7 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     wallet,
     telemetry: new TelemetryService(db),
     ads: new AdsService(db, adProvider, wallet),
+    adControls: new AdControlsService(db, adminAuth),
     iap: new IapService(db, config.REVENUECAT_WEBHOOK_SECRET),
     adminAuth,
     admin: new AdminService(db, adminAuth, metrics),

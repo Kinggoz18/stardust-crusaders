@@ -78,6 +78,12 @@ export const installPropsSchema = z.object({
   platform: platformSchema.optional(),
 });
 
+export const houseAdEventPropsSchema = z.object({
+  houseAdId: z.string().uuid(),
+  promotedGame: gameIdSchema,
+  placement: z.string().max(64).optional(),
+});
+
 /** Named event → props schema. Base telemetry still accepts unknown names. */
 export const TELEMETRY_EVENT_PROPS = {
   session_start: sessionStartPropsSchema,
@@ -93,6 +99,10 @@ export const TELEMETRY_EVENT_PROPS = {
   ad_rewarded_start: adPlacementPropsSchema,
   ad_rewarded_complete: adRewardedCompletePropsSchema,
   ad_interstitial_impression: adPlacementPropsSchema,
+  house_ad_shown: houseAdEventPropsSchema,
+  house_ad_started: houseAdEventPropsSchema,
+  house_ad_completed: houseAdEventPropsSchema,
+  house_ad_clicked: houseAdEventPropsSchema,
   iap_offer_seen: iapOfferSeenPropsSchema,
   tier_reached: tierReachedPropsSchema,
   building_placed: buildingPlacedPropsSchema,

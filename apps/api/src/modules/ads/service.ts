@@ -9,7 +9,14 @@ import {
   type GameId,
 } from "@stardust/schema";
 import type { Db } from "../../db/client.js";
-import { adFrequencyCaps, adRewardTransactions, adUnits } from "../../db/schema.js";
+import {
+  adFrequencyCaps,
+  adRewardTransactions,
+  adUnits,
+  houseAds,
+  houseAdsGame,
+  houseAdsGlobal,
+} from "../../db/schema.js";
 import type { AdProvider } from "./provider.js";
 import type { WalletService } from "../wallet/service.js";
 
@@ -18,6 +25,11 @@ const DEFAULT_INTERSTITIAL = {
   maxTransitions: 6,
   maxPerSession: 3,
   enabled: true,
+};
+
+const DEFAULT_REWARDED = {
+  enabled: true,
+  maxPerSession: 20,
 };
 
 export class AdsService {
@@ -50,9 +62,16 @@ export class AdsService {
 
   async configFor(accountId: string, gameIdRaw: string): Promise<AdConfigResponse> {
     const gameId = gameIdSchema.parse(gameIdRaw);
-    const interstitialBase = await this.resolveInterstitial(accountId, gameId);
+    const interstitialBase = await this.resolveCap(accountId, gameId, "interstitial", DEFAULT_INTERSTITIAL);
+    const rewardedBase = await this.resolveCap(accountId, gameId, "rewarded", {
+      minTransitions: 1,
+      maxTransitions: 1,
+      maxPerSession: DEFAULT_REWARDED.maxPerSession,
+      enabled: DEFAULT_REWARDED.enabled,
+    });
     const nextGap = randomInt(interstitialBase.minTransitions, interstitialBase.maxTransitions + 1);
     const units = await this.resolveUnits(gameId);
+    const houseAdsConfig = await this.resolveHouseAds(gameId);
     return adConfigResponseSchema.parse({
       provider: this.provider.name,
       gameId,
@@ -61,16 +80,29 @@ export class AdsService {
       rewarded: {
         ssv: true,
         kinds: ["coins", "booster", "extra_moves", "other"],
+        enabled: rewardedBase.enabled,
+        maxPerSession: rewardedBase.maxPerSession,
       },
+      houseAds: houseAdsConfig,
     });
   }
 
-  private async resolveInterstitial(accountId: string, gameId: GameId) {
+  private async resolveCap(
+    accountId: string,
+    gameId: GameId,
+    placement: string,
+    fallback: {
+      minTransitions: number;
+      maxTransitions: number;
+      maxPerSession: number;
+      enabled: boolean;
+    },
+  ) {
     const override = await this.db.query.adFrequencyCaps.findFirst({
       where: and(
         eq(adFrequencyCaps.gameId, gameId),
         eq(adFrequencyCaps.accountId, accountId),
-        eq(adFrequencyCaps.placement, "interstitial"),
+        eq(adFrequencyCaps.placement, placement),
       ),
     });
     if (override) {
@@ -85,15 +117,68 @@ export class AdsService {
       where: and(
         eq(adFrequencyCaps.gameId, gameId),
         isNull(adFrequencyCaps.accountId),
-        eq(adFrequencyCaps.placement, "interstitial"),
+        eq(adFrequencyCaps.placement, placement),
       ),
     });
-    if (!defaults) return { ...DEFAULT_INTERSTITIAL };
+    if (!defaults) return { ...fallback };
     return {
       minTransitions: defaults.minTransitions,
       maxTransitions: defaults.maxTransitions,
       maxPerSession: defaults.maxPerSession,
       enabled: defaults.enabled,
+    };
+  }
+
+  private async resolveHouseAds(gameId: GameId) {
+    const global =
+      (await this.db.query.houseAdsGlobal.findFirst({ where: eq(houseAdsGlobal.id, 1) })) ?? {
+        enabled: false,
+        killSwitch: false,
+      };
+    const gameRow = await this.db.query.houseAdsGame.findFirst({
+      where: eq(houseAdsGame.gameId, gameId),
+    });
+    const gameEnabled = gameRow?.enabled ?? false;
+    const available = !global.killSwitch && global.enabled && gameEnabled;
+
+    const now = new Date();
+    let items: Array<{
+      id: string;
+      promotedGame: GameId;
+      creativeRef: string;
+      maxPerSession: number;
+    }> = [];
+
+    if (available) {
+      const rows = await this.db.select().from(houseAds).where(eq(houseAds.enabled, true));
+      items = rows
+        .filter((r) => {
+          if (r.promotedGame === gameId) return false;
+          if (!r.targetGames.includes(gameId)) return false;
+          if (r.startsAt && r.startsAt > now) return false;
+          if (r.endsAt && r.endsAt < now) return false;
+          return true;
+        })
+        .map((r) => ({
+          id: r.id,
+          promotedGame: r.promotedGame,
+          creativeRef: r.creativeRef,
+          maxPerSession: r.maxPerSession,
+        }));
+    }
+
+    return {
+      available: available && items.length > 0,
+      killSwitch: global.killSwitch,
+      globalEnabled: global.enabled,
+      gameEnabled,
+      rules: {
+        naturalBreakOnly: true as const,
+        neverAfterOtherAd: true as const,
+        requiresConsent: true as const,
+        neverSelfPromote: true as const,
+      },
+      items: available ? items : [],
     };
   }
 

@@ -97,6 +97,11 @@ export const auditActionSchema = z.enum([
   "bootstrap_denied",
   "login",
   "logout",
+  "ad_settings_update",
+  "house_ads_global_update",
+  "house_ad_create",
+  "house_ad_update",
+  "house_ad_delete",
 ]);
 
 export const auditEntrySchema = z.object({

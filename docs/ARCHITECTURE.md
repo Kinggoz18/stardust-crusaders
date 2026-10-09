@@ -31,8 +31,9 @@ Staff browser ──► apps/admin (Pages SPA)
 - **wallet_ledger** — append-only coins with idempotency keys
 - **telemetry_events** — deduped by event id; consent-gated
 - **ad_reward_transactions** / **iap_webhook_events** — idempotent provider callbacks
-- **ad_frequency_caps** — per-game (and optional per-account) interstitial pacing by level transitions
-- **ad_units** — one AdMob unit id per game × format (interstitial, rewarded)
+- **ad_frequency_caps** — per-game (and optional per-account) interstitial / rewarded / house pacing by level transitions
+- **ad_units** — one AdMob unit id per game × format (interstitial, rewarded); config values, not secrets
+- **house_ads_global** / **house_ads_game** / **house_ads** — own-game playable mini-ads (off by default; kill switch; never self-promote)
 - **staff_users** / **staff_sessions** / **staff_invites** / **admin_bootstrap** / **admin_audit_log** — argon2id + TOTP, one-time master-key bootstrap, invite tokens, audited reads/writes
 
 ## Module layout (`apps/api/src/modules`)
@@ -75,9 +76,9 @@ Staff browser ──► apps/admin (Pages SPA)
 
 ### DR6 — Ad network
 
-**Decision:** **AdMob** for Interstitial and Rewarded Video. No native ads. One AdMob setup serves all three games with a distinct unit pair per game in `ad_units`. `AdProvider` implementations: `none`, `generic` (HMAC test), `admob` (SSV ECDSA against Google's published verifier keys, cached ≤24h). Rewarded grants are idempotent by `transaction_id`. Interstitial pacing is by **level transitions** (`minTransitions`/`maxTransitions`, default 4–6) with a hard `maxPerSession`; `GET /v1/ads/config` returns units + pacing including a server-chosen `nextGap`. Clients show interstitials only after a win at a natural break, never mid-level, never immediately after a rewarded ad.
+**Decision:** **AdMob** for Interstitial and Rewarded Video. No native ads. One AdMob setup serves all three games with a distinct unit pair per game in `ad_units` (editable from admin; not secrets). `AdProvider` implementations: `none`, `generic` (HMAC test), `admob` (SSV ECDSA against Google's published verifier keys, cached ≤24h). Rewarded grants are idempotent by `transaction_id`. Interstitial pacing is by **level transitions** (`minTransitions`/`maxTransitions`, default 4–6) with a hard `maxPerSession`; `GET /v1/ads/config` returns units + pacing including a server-chosen `nextGap`, plus **house ads** (own titles only: One Spark, Loom Rush, Borrowed Time). House ads are off globally and per game until an owner confirms studio enable; a kill switch turns them off instantly; a game never shows a house ad for itself; same consent, frequency, and natural-break rules; never right after another ad. Admin CRUD under `/admin/v1/games/:gameId/ads/settings` and `/admin/v1/ads/house*` (owner/support) is audited.
 
-**Why:** Owner choice; SSV removes client-trusted rewards; transition-based pacing matches puzzle session rhythm better than wall-clock caps.
+**Why:** Owner choice; SSV removes client-trusted rewards; transition-based pacing matches puzzle session rhythm; house ads cross-promote our catalogue without third-party creatives.
 
 ## Progress conflict handling
 
