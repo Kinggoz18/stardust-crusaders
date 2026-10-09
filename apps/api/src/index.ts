@@ -1,12 +1,17 @@
 import { buildServer } from "./server.js";
 import { loadConfig } from "./config.js";
+import { createAppContext } from "./app-context.js";
+import { migrateUp } from "./db/migrator.js";
 
 const config = loadConfig();
-const app = await buildServer(config);
+const ctx = createAppContext(config);
+await migrateUp(ctx.sql);
+const app = await buildServer(config, ctx);
 
 const shutdown = async (signal: string) => {
   app.log.info({ signal }, "shutting down");
   await app.close();
+  await ctx.sql.end({ timeout: 5 });
   process.exit(0);
 };
 

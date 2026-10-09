@@ -1,1 +1,1 @@
-/** Integration preload — Postgres harness lands with API core. */
+/** Integration preload — each suite starts its own Postgres via test/pg.ts. */
