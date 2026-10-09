@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { gameIdSchema, summarizeProgress } from "@stardust/schema";
 import { api } from "../lib/api";
 import { ErrorState, SkeletonList } from "../components/States";
 
@@ -77,13 +78,27 @@ export function AccountDetailPage() {
       <h2>Games</h2>
       <ul className="link-list">
         {progress.length === 0 ? <li>No game progress yet.</li> : null}
-        {progress.map((g) => (
-          <li key={g.gameId}>
-            <Link to={`/accounts/${account.id}/games/${g.gameId}`}>
-              {g.gameId.replace("-", " ")} · save {g.revision}
-            </Link>
-          </li>
-        ))}
+        {progress.map((g) => {
+          const parsed = gameIdSchema.safeParse(g.gameId);
+          if (!parsed.success) {
+            return (
+              <li key={g.gameId}>
+                <Link to={`/accounts/${account.id}/games/${g.gameId}`}>{g.gameId}</Link>
+              </li>
+            );
+          }
+          const summary = summarizeProgress(parsed.data, g.document, g.revision);
+          const headline = summary.rows[0];
+          return (
+            <li key={g.gameId}>
+              <Link to={`/accounts/${account.id}/games/${g.gameId}`}>
+                {summary.displayName}
+                {summary.draft ? " (draft)" : ""}
+                {headline ? ` · ${headline.label} ${headline.value}` : ""}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

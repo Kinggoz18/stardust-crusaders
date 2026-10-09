@@ -48,6 +48,19 @@ export {
 } from "./games/registry.js";
 
 export {
+  GAME_ADMIN_META,
+  gameAdminMeta,
+  gameDisplayName,
+  progressSchemaPaths,
+  schemaFieldPaths,
+  summarizeProgress,
+  type AdminFieldMapping,
+  type AdminSummaryRow,
+  type GameAdminMeta,
+  type ProgressAdminSummary,
+} from "./games/admin-summary.js";
+
+export {
   walletReasonSchema,
   walletLedgerEntrySchema,
   postWalletEntryRequestSchema,

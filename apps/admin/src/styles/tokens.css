@@ -399,6 +399,33 @@ td {
   margin-bottom: var(--space-4);
 }
 
+.badge {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.badge.draft {
+  color: var(--color-focus);
+  border-color: color-mix(in srgb, var(--color-focus) 50%, var(--color-border));
+}
+
+.badge.live {
+  color: var(--color-accent);
+}
+
+.progress-summary-meta {
+  margin-bottom: var(--space-4);
+  color: var(--color-ink-muted);
+}
+
+.progress-summary-meta p {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   main {
     padding: var(--space-3);
