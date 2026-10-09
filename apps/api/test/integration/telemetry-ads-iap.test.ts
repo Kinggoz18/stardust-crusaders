@@ -1,10 +1,42 @@
 import { describe, expect, test, afterAll } from "bun:test";
 import { createHmac } from "node:crypto";
-import { startTestApp } from "../helpers.js";
-import { signGenericReward } from "../../src/modules/ads/provider.js";
+import { startTestApp, testConfig } from "../helpers.js";
+import { startTestPostgres } from "../pg.js";
+import { createAppContextWithAds } from "../../src/app-context.js";
+import { buildServer } from "../../src/server.js";
+import { migrateUp } from "../../src/db/migrator.js";
+import {
+  AdMobProvider,
+  createTestAdMobSigner,
+  signGenericReward,
+} from "../../src/modules/ads/provider.js";
 
 const harness = await startTestApp();
 afterAll(() => harness.stop());
+
+async function startAdMobApp() {
+  const pg = await startTestPostgres();
+  const config = testConfig(pg.connectionString);
+  const signer = createTestAdMobSigner(1916455855);
+  const provider = new AdMobProvider({ keyCache: signer.cache, maxAgeMs: 3_600_000 });
+  const ctx = createAppContextWithAds(
+    { ...config, AD_PROVIDER: "admob" },
+    pg.connectionString,
+    provider,
+  );
+  await migrateUp(ctx.sql);
+  const app = await buildServer({ ...config, AD_PROVIDER: "admob" }, ctx);
+  return {
+    app,
+    ctx,
+    signer,
+    async stop() {
+      await app.close();
+      await ctx.sql.end({ timeout: 5 });
+      await pg.stop();
+    },
+  };
+}
 
 async function createAccount(deviceId: string) {
   const res = await harness.app.inject({
@@ -123,6 +155,107 @@ describe("ads", () => {
       expect(second.json().balance).toBe(7);
     } finally {
       delete process.env.AD_PROVIDER;
+      await local.stop();
+    }
+  });
+
+  test("admob SSV: valid, tampered, expired key, replay, wrong account", async () => {
+    const local = await startAdMobApp();
+    try {
+      const created = await local.app.inject({
+        method: "POST",
+        url: "/v1/accounts/anonymous",
+        payload: {
+          deviceId: "ad-device-admob",
+          platform: "android",
+          consent: { analytics: false, crashReports: false, marketing: false },
+        },
+      });
+      const accountId = created.json().accountId as string;
+      const accessToken = created.json().accessToken as string;
+      const other = await local.app.inject({
+        method: "POST",
+        url: "/v1/accounts/anonymous",
+        payload: {
+          deviceId: "ad-device-admob-other",
+          platform: "android",
+          consent: { analytics: false, crashReports: false, marketing: false },
+        },
+      });
+      const otherId = other.json().accountId as string;
+
+      const custom = encodeURIComponent(
+        JSON.stringify({ accountId, gameId: "one-spark", rewardKind: "coins" }),
+      );
+      const baseParams = {
+        ad_network: "5450213213286189855",
+        ad_unit: "2747237135",
+        custom_data: custom,
+        reward_amount: "7",
+        reward_item: "coins",
+        timestamp: String(Date.now()),
+        transaction_id: "18fa792de1bca816048293fc71035638",
+        user_id: accountId,
+      };
+      const validQ = local.signer.signQuery(baseParams);
+      const first = await local.app.inject({
+        method: "GET",
+        url: `/v1/ads/reward-callback?${validQ}`,
+      });
+      expect(first.statusCode).toBe(201);
+      expect(first.json().granted).toBe(true);
+      expect(first.json().balance).toBe(7);
+
+      const replay = await local.app.inject({
+        method: "GET",
+        url: `/v1/ads/reward-callback?${validQ}`,
+      });
+      expect(replay.statusCode).toBe(200);
+      expect(replay.json().duplicate).toBe(true);
+      expect(replay.json().balance).toBe(7);
+
+      const tampered = validQ.replace("reward_amount=7", "reward_amount=70");
+      const badSig = await local.app.inject({
+        method: "GET",
+        url: `/v1/ads/reward-callback?${tampered}`,
+      });
+      expect(badSig.statusCode).toBe(401);
+
+      // Expired key: publisher rotates away our keyId.
+      local.signer.publishKeys([]);
+      const expiredKey = await local.app.inject({
+        method: "GET",
+        url: `/v1/ads/reward-callback?${validQ}`,
+      });
+      expect(expiredKey.statusCode).toBe(401);
+      local.signer.publishKeys([{ keyId: local.signer.keyId, pem: local.signer.pem }]);
+
+      const wrongCustom = encodeURIComponent(
+        JSON.stringify({ accountId: otherId, gameId: "one-spark", rewardKind: "coins" }),
+      );
+      const wrongQ = local.signer.signQuery({
+        ...baseParams,
+        custom_data: wrongCustom,
+        user_id: accountId,
+        transaction_id: "18fa792de1bca816048293fc71035639",
+        timestamp: String(Date.now()),
+      });
+      const wrongAccount = await local.app.inject({
+        method: "GET",
+        url: `/v1/ads/reward-callback?${wrongQ}`,
+      });
+      expect(wrongAccount.statusCode).toBe(401);
+
+      const cfg = await local.app.inject({
+        method: "GET",
+        url: "/v1/ads/config?gameId=one-spark",
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+      expect(cfg.statusCode).toBe(200);
+      expect(cfg.json().provider).toBe("admob");
+      expect(cfg.json().placements.interstitial.maxPerHour).toBeGreaterThan(0);
+      expect(cfg.json().placements.rewarded.ssv).toBe(true);
+    } finally {
       await local.stop();
     }
   });

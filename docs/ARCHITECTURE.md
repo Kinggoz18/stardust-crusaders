@@ -31,6 +31,7 @@ Staff browser ──► apps/admin (Pages SPA)
 - **wallet_ledger** — append-only coins with idempotency keys
 - **telemetry_events** — deduped by event id; consent-gated
 - **ad_reward_transactions** / **iap_webhook_events** — idempotent provider callbacks
+- **ad_frequency_caps** — per-game (and optional per-account) interstitial caps for games to read
 - **staff_users** / **staff_sessions** / **admin_audit_log** — argon2id + TOTP, short sessions, audited reads/writes
 
 ## Module layout (`apps/api/src/modules`)
@@ -70,6 +71,12 @@ Staff browser ──► apps/admin (Pages SPA)
 **Decision:** **Drizzle ORM** + SQL migrations with tested down files (expand-then-contract).
 
 **Why:** Typed schema close to SQL; works on Bun; no query-builder surprise tax. Kysely was considered; Drizzle’s migrate story and schema-as-code fit better here.
+
+### DR6 — Ad network
+
+**Decision:** **AdMob** for Interstitial and Rewarded Video. No native ads. `AdProvider` implementations: `none`, `generic` (HMAC test), `admob` (SSV ECDSA against Google's published verifier keys, cached ≤24h). Rewarded grants are idempotent by `transaction_id`. Interstitial frequency caps live in `ad_frequency_caps` and are exposed on `GET /v1/ads/config`.
+
+**Why:** Owner choice; SSV removes client-trusted rewards; caps stay configurable without a mediation SDK on the server.
 
 ## Progress conflict handling
 

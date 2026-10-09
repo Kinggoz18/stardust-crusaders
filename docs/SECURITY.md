@@ -24,7 +24,7 @@ Threat model and controls for the Stardust Crusaders platform. OWASP Top 10:2025
 | Injection | Parameterised SQL (Drizzle/postgres); zod on all bodies |
 | Auth failures | Short-lived access tokens; refresh rotation; mandatory TOTP for staff; rate limits |
 | Integrity | Idempotency keys; revision checks; webhook event id uniqueness |
-| Cryptographic failures | argon2id (Bun.password); HMAC SHA-256 for webhooks/ads; secrets only via env |
+| Cryptographic failures | argon2id (Bun.password); HMAC SHA-256 for webhooks/generic ads; AdMob SSV ECDSA P-256 against Google's public keys; secrets only via env |
 | Misconfiguration | `.env.example` names only; security headers (helmet); CORS allowlist |
 | Logging | No secrets or full webhook PII in logs; structured Fastify logs |
 

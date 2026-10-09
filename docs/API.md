@@ -24,7 +24,9 @@ Consistent errors:
 | GET | `/v1/wallet` | Bearer | balance + entries |
 | POST | `/v1/wallet/entries` | Bearer | `postWalletEntryRequestSchema` (idempotent) |
 | POST | `/v1/events` | optional Bearer | `postEventsRequestSchema`; consent + dedupe |
-| POST | `/v1/ads/reward-callback` | signature | `adRewardCallbackSchema` |
+| POST | `/v1/ads/reward-callback` | signature | Generic HMAC body (`adRewardCallbackSchema`) when `AD_PROVIDER=generic` |
+| GET | `/v1/ads/reward-callback` | AdMob SSV | Query-string ECDSA callback; idempotent by `transaction_id` |
+| GET | `/v1/ads/config?gameId=` | Bearer | Interstitial frequency caps + rewarded SSV metadata (`adConfigResponseSchema`) |
 | POST | `/v1/webhooks/revenuecat` | HMAC header | sandbox stub; idempotent by event id |
 
 `gameId`: `one-spark` \| `loom-rush` \| `borrowed-time`.

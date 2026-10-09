@@ -141,6 +141,18 @@ export const adRewardTransactions = pgTable(
   },
 );
 
+export const adFrequencyCaps = pgTable("ad_frequency_caps", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  gameId: gameIdEnum("game_id").notNull(),
+  accountId: uuid("account_id").references(() => accounts.id, { onDelete: "cascade" }),
+  placement: varchar("placement", { length: 32 }).notNull(),
+  maxPerHour: integer("max_per_hour").notNull(),
+  maxPerDay: integer("max_per_day").notNull(),
+  minIntervalSeconds: integer("min_interval_seconds").notNull().default(60),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const iapWebhookEvents = pgTable("iap_webhook_events", {
   eventId: varchar("event_id", { length: 128 }).primaryKey(),
   provider: varchar("provider", { length: 32 }).notNull().default("revenuecat"),

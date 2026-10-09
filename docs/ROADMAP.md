@@ -5,7 +5,7 @@
 - Cloud save linking UX (Apple / Google / email) with merge rules from ARCHITECTURE DR3
 - Push notifications (session reminders, daily reward)
 - A/B config + shared remote-flags service
-- Ad network choice (AdMob vs AppLovin MAX) and mediation; keep `AdProvider` boundary
+- Ad mediation / waterfall on top of AdMob (AppLovin MAX still optional later); keep `AdProvider` boundary
 - Harden farming controls (device attestation / Play Integrity) once volume warrants it
 
 ## Borrowed Time async multiplayer (FINAL_PLAN §12)

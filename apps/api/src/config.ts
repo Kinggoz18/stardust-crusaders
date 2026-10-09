@@ -9,8 +9,12 @@ const configSchema = z.object({
   CORS_ALLOWED_ORIGINS: z.string().min(1),
   ADMIN_PROXY_TOKEN: z.string().min(16),
   REVENUECAT_WEBHOOK_SECRET: z.string().min(8),
-  AD_PROVIDER: z.enum(["none", "generic"]).default("none"),
+  AD_PROVIDER: z.enum(["none", "generic", "admob"]).default("none"),
   AD_PROVIDER_SIGNING_SECRET: z.string().min(8),
+  /** Override AdMob verifier keys URL (tests only). Default is Google's published list. */
+  ADMOB_SSV_KEYS_URL: z.string().url().optional(),
+  /** Max age of an AdMob SSV timestamp in ms (default 1 hour). */
+  ADMOB_SSV_MAX_AGE_MS: z.coerce.number().int().positive().default(3_600_000),
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default("0.0.0.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),

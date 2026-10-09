@@ -51,7 +51,7 @@ export async function buildServer(config: Config, ctx?: AppContext) {
     await registerProgressRoutes(app, { progress: ctx.progress, config });
     await registerWalletRoutes(app, { wallet: ctx.wallet, config });
     await registerTelemetryRoutes(app, { telemetry: ctx.telemetry, config });
-    await registerAdsRoutes(app, { ads: ctx.ads });
+    await registerAdsRoutes(app, { ads: ctx.ads, config });
     await registerIapRoutes(app, { iap: ctx.iap });
     await registerAdminRoutes(app, {
       adminAuth: ctx.adminAuth,

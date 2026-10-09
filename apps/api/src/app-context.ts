@@ -27,7 +27,11 @@ export type AppContext = {
 export function createAppContext(config: Config, databaseUrl = config.DATABASE_URL): AppContext {
   const { db, sql } = createDb(databaseUrl);
   const wallet = new WalletService(db);
-  const adProvider = createAdProvider(config.AD_PROVIDER, config.AD_PROVIDER_SIGNING_SECRET);
+  const adProvider = createAdProvider(config.AD_PROVIDER, {
+    signingSecret: config.AD_PROVIDER_SIGNING_SECRET,
+    keysUrl: config.ADMOB_SSV_KEYS_URL,
+    maxAgeMs: config.ADMOB_SSV_MAX_AGE_MS,
+  });
   const adminAuth = new AdminAuthService(db);
   return {
     config,
@@ -41,5 +45,18 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     iap: new IapService(db, config.REVENUECAT_WEBHOOK_SECRET),
     adminAuth,
     admin: new AdminService(db, adminAuth),
+  };
+}
+
+/** Test helper: build context with a custom ad provider. */
+export function createAppContextWithAds(
+  config: Config,
+  databaseUrl: string,
+  adProvider: ReturnType<typeof createAdProvider>,
+): AppContext {
+  const base = createAppContext(config, databaseUrl);
+  return {
+    ...base,
+    ads: new AdsService(base.db, adProvider, base.wallet),
   };
 }
