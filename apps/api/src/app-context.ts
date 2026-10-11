@@ -45,9 +45,9 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     accounts: new AccountsService(db, config),
     progress: new ProgressService(db),
     wallet,
-    telemetry: new TelemetryService(db),
-    ads: new AdsService(db, adProvider, wallet),
-    adControls: new AdControlsService(db, adminAuth),
+    telemetry: new TelemetryService(db, config),
+    ads: new AdsService(db, adProvider, wallet, config),
+    adControls: new AdControlsService(db, adminAuth, config),
     iap: new IapService(db, config.REVENUECAT_WEBHOOK_SECRET),
     adminAuth,
     admin: new AdminService(db, adminAuth, metrics),
@@ -64,6 +64,6 @@ export function createAppContextWithAds(
   const base = createAppContext(config, databaseUrl);
   return {
     ...base,
-    ads: new AdsService(base.db, adProvider, base.wallet),
+    ads: new AdsService(base.db, adProvider, base.wallet, config),
   };
 }

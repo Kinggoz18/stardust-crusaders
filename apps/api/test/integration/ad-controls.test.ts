@@ -2,7 +2,7 @@ import { describe, expect, test, afterAll } from "bun:test";
 import * as OTPAuth from "otpauth";
 import { startTestApp } from "../helpers.js";
 
-const harness = await startTestApp();
+const harness = await startTestApp({ nodeEnv: "production" });
 afterAll(() => harness.stop());
 
 function totpCode(secret: string) {

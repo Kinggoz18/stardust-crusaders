@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adsAdminEnvironmentSchema } from "./ads-env.js";
 import { gameIdSchema, GAME_IDS } from "./games/registry.js";
 
 export const adProviderNameSchema = z.enum(["none", "generic", "admob"]);
@@ -104,6 +105,7 @@ export type AdInterstitialConfig = z.infer<typeof adInterstitialConfigSchema>;
 
 /** Admin: per-game network ad settings (owner/support). */
 export const adminGameAdsSettingsSchema = z.object({
+  environment: adsAdminEnvironmentSchema,
   gameId: gameIdSchema,
   interstitial: z.object({
     enabled: z.boolean(),
@@ -212,6 +214,7 @@ export const houseAdsGlobalUpdateSchema = z
   });
 
 export const houseAdsAdminListSchema = z.object({
+  environment: adsAdminEnvironmentSchema,
   global: houseAdsGlobalSchema,
   games: z.array(z.object({ gameId: gameIdSchema, enabled: z.boolean() })),
   items: z.array(houseAdRecordSchema),

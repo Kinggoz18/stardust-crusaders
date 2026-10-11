@@ -1,13 +1,17 @@
 import { randomInt } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import {
+  ADS_DISABLED_IN_ENVIRONMENT_CODE,
+  ADS_DISABLED_IN_ENVIRONMENT_MESSAGE,
   adConfigResponseSchema,
   adRewardCallbackSchema,
   gameIdSchema,
+  isClientAdsEnabled,
   type AdConfigResponse,
   type AdRewardCallback,
   type GameId,
 } from "@stardust/schema";
+import type { Config } from "../../config.js";
 import type { Db } from "../../db/client.js";
 import {
   adFrequencyCaps,
@@ -37,9 +41,17 @@ export class AdsService {
     private readonly db: Db["db"],
     private readonly provider: AdProvider,
     private readonly wallet: WalletService,
+    private readonly config: Config,
   ) {}
 
+  private assertClientAdsEnabled() {
+    if (!isClientAdsEnabled(this.config.NODE_ENV)) {
+      throw adsDisabled();
+    }
+  }
+
   async verifyAndGrant(raw: unknown, rawBody: string) {
+    this.assertClientAdsEnabled();
     const payload = adRewardCallbackSchema.parse(raw);
     const ok = await this.provider.verifyRewardCallback(payload, rawBody);
     if (!ok) {
@@ -50,6 +62,7 @@ export class AdsService {
 
   /** AdMob SSV GET callback. */
   async verifySsvAndGrant(queryString: string) {
+    this.assertClientAdsEnabled();
     if (!this.provider.verifySsvQuery) {
       throw unauthorized("This ad network does not use that callback.", "unsupported_provider");
     }
@@ -62,6 +75,38 @@ export class AdsService {
 
   async configFor(accountId: string, gameIdRaw: string): Promise<AdConfigResponse> {
     const gameId = gameIdSchema.parse(gameIdRaw);
+    const units = await this.resolveUnits(gameId);
+    if (!isClientAdsEnabled(this.config.NODE_ENV)) {
+      return adConfigResponseSchema.parse({
+        provider: this.provider.name,
+        gameId,
+        units,
+        interstitial: {
+          ...DEFAULT_INTERSTITIAL,
+          enabled: false,
+          nextGap: DEFAULT_INTERSTITIAL.minTransitions,
+        },
+        rewarded: {
+          ssv: true,
+          kinds: ["coins", "booster", "extra_moves", "other"],
+          enabled: false,
+          maxPerSession: DEFAULT_REWARDED.maxPerSession,
+        },
+        houseAds: {
+          available: false,
+          killSwitch: false,
+          globalEnabled: false,
+          gameEnabled: false,
+          rules: {
+            naturalBreakOnly: true,
+            neverAfterOtherAd: true,
+            requiresConsent: true,
+            neverSelfPromote: true,
+          },
+          items: [],
+        },
+      });
+    }
     const interstitialBase = await this.resolveCap(accountId, gameId, "interstitial", DEFAULT_INTERSTITIAL);
     const rewardedBase = await this.resolveCap(accountId, gameId, "rewarded", {
       minTransitions: 1,
@@ -70,7 +115,6 @@ export class AdsService {
       enabled: DEFAULT_REWARDED.enabled,
     });
     const nextGap = randomInt(interstitialBase.minTransitions, interstitialBase.maxTransitions + 1);
-    const units = await this.resolveUnits(gameId);
     const houseAdsConfig = await this.resolveHouseAds(gameId);
     return adConfigResponseSchema.parse({
       provider: this.provider.name,
@@ -249,5 +293,15 @@ function unauthorized(message: string, code: string) {
   const err = new Error(message) as Error & { statusCode: number; code: string };
   err.statusCode = 401;
   err.code = code;
+  return err;
+}
+
+function adsDisabled() {
+  const err = new Error(ADS_DISABLED_IN_ENVIRONMENT_MESSAGE) as Error & {
+    statusCode: number;
+    code: string;
+  };
+  err.statusCode = 403;
+  err.code = ADS_DISABLED_IN_ENVIRONMENT_CODE;
   return err;
 }

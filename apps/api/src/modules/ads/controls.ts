@@ -9,6 +9,7 @@ import {
   houseAdUpdateSchema,
   houseAdsAdminListSchema,
   houseAdsGlobalUpdateSchema,
+  adsAdminEnvironment,
   type GameId,
   type StaffRole,
 } from "@stardust/schema";
@@ -21,11 +22,13 @@ import {
   houseAdsGlobal,
 } from "../../db/schema.js";
 import type { AdminAuthService, StaffContext } from "../admin/auth.js";
+import type { Config } from "../../config.js";
 
 export class AdControlsService {
   constructor(
     private readonly db: Db["db"],
     private readonly auth: AdminAuthService,
+    private readonly config: Config,
   ) {}
 
   private allowWrite(staff: StaffContext) {
@@ -48,6 +51,7 @@ export class AdControlsService {
       where: eq(houseAdsGame.gameId, gameId),
     });
     return adminGameAdsSettingsSchema.parse({
+      environment: adsAdminEnvironment(this.config.NODE_ENV),
       gameId,
       interstitial: {
         enabled: interstitial.enabled,
@@ -133,6 +137,7 @@ export class AdControlsService {
     const games = await this.db.select().from(houseAdsGame);
     const items = await this.db.select().from(houseAds).orderBy(desc(houseAds.createdAt));
     return houseAdsAdminListSchema.parse({
+      environment: adsAdminEnvironment(this.config.NODE_ENV),
       global: {
         enabled: global.enabled,
         killSwitch: global.killSwitch,

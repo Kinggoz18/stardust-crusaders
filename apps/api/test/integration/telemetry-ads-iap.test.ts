@@ -16,7 +16,7 @@ afterAll(() => harness.stop());
 
 async function startAdMobApp() {
   const pg = await startTestPostgres();
-  const config = testConfig(pg.connectionString);
+  const config = testConfig(pg.connectionString, { nodeEnv: "production" });
   const signer = createTestAdMobSigner(1916455855);
   const provider = new AdMobProvider({ keyCache: signer.cache, maxAgeMs: 3_600_000 });
   const ctx = createAppContextWithAds(
@@ -115,7 +115,7 @@ describe("ads", () => {
 
   test("generic provider grants once and replays safely", async () => {
     process.env.AD_PROVIDER = "generic";
-    const local = await startTestApp();
+    const local = await startTestApp({ nodeEnv: "production" });
     try {
       const created = await local.app.inject({
         method: "POST",

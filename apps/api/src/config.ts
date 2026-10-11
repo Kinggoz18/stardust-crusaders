@@ -20,7 +20,10 @@ const configSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default("0.0.0.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: z.preprocess(
+    (v) => (v === "dev" ? "development" : v),
+    z.enum(["development", "test", "production"]).default("development"),
+  ),
 });
 
 export type Config = z.infer<typeof configSchema> & {

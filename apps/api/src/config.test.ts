@@ -25,4 +25,9 @@ describe("loadConfig", () => {
   test("rejects short secrets", () => {
     expect(() => loadConfig({ ...base, JWT_SECRET: "short" } as NodeJS.ProcessEnv)).toThrow(/Invalid config/);
   });
+
+  test("normalizes NODE_ENV dev to development", () => {
+    const cfg = loadConfig({ ...base, NODE_ENV: "dev" } as NodeJS.ProcessEnv);
+    expect(cfg.NODE_ENV).toBe("development");
+  });
 });
