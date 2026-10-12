@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type { IapService } from "./service.js";
+import type { GooglePlayIapService } from "./google-service.js";
 
-export async function registerIapRoutes(app: FastifyInstance, deps: { iap: IapService }) {
+export async function registerIapRoutes(app: FastifyInstance, deps: { iap: IapService; googlePlay?: GooglePlayIapService }) {
   await app.register(async (scope) => {
     scope.removeContentTypeParser("application/json");
     scope.addContentTypeParser(
@@ -23,6 +24,16 @@ export async function registerIapRoutes(app: FastifyInstance, deps: { iap: IapSe
       const signature = req.headers["x-revenuecat-signature"] as string | undefined;
       const result = await deps.iap.handleWebhook(body.raw, signature);
       return reply.status(200).send(result);
+    });
+
+    // Validator endpoint for cordova-plugin-purchase (store.validator). ?game=one-spark
+    scope.post("/v1/iap/google/verify", { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } }, async (req, reply) => {
+      const gp = deps.googlePlay;
+      const game = String((req.query as { game?: string }).game ?? "");
+      const body = req.body as { parsed: unknown } | undefined;
+      if (!gp) return reply.status(200).send({ ok: false, code: 6778003, message: "Purchase checks are switched off." });
+      const verdict = await gp.validate(game, body?.parsed);
+      return reply.status(200).send(verdict);
     });
   });
 }

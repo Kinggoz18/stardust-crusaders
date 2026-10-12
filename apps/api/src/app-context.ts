@@ -8,6 +8,8 @@ import { AdsService } from "./modules/ads/service.js";
 import { AdControlsService } from "./modules/ads/controls.js";
 import { createAdProvider } from "./modules/ads/provider.js";
 import { IapService } from "./modules/iap/service.js";
+import { GooglePlayIapService } from "./modules/iap/google-service.js";
+import { GooglePlayVerifier, parsePackages, parseServiceAccount } from "./modules/iap/google-play.js";
 import { AdminAuthService } from "./modules/admin/auth.js";
 import { AdminService } from "./modules/admin/service.js";
 import { MetricsService } from "./modules/metrics/service.js";
@@ -23,6 +25,7 @@ export type AppContext = {
   ads: AdsService;
   adControls: AdControlsService;
   iap: IapService;
+  googlePlay: GooglePlayIapService;
   adminAuth: AdminAuthService;
   admin: AdminService;
   metrics: MetricsService;
@@ -49,10 +52,23 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     ads: new AdsService(db, adProvider, wallet, config),
     adControls: new AdControlsService(db, adminAuth, config),
     iap: new IapService(db, config.REVENUECAT_WEBHOOK_SECRET),
+    googlePlay: createGooglePlay(config, db),
     adminAuth,
     admin: new AdminService(db, adminAuth, metrics),
     metrics,
   };
+}
+
+export function createGooglePlay(config: Config, db: Db["db"] | null): GooglePlayIapService {
+  const sa = config.GOOGLE_PLAY_VERIFY === "off" ? null : parseServiceAccount(config.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON);
+  const verifier = sa
+    ? new GooglePlayVerifier({
+        serviceAccount: sa,
+        packages: parsePackages(config.GOOGLE_PLAY_PACKAGES),
+        apiBase: config.GOOGLE_PLAY_API_BASE,
+      })
+    : null;
+  return new GooglePlayIapService(db, verifier, config.GOOGLE_PLAY_VERIFY);
 }
 
 /** Test helper: build context with a custom ad provider. */

@@ -17,6 +17,14 @@ const configSchema = z.object({
   ADMOB_SSV_KEYS_URL: z.string().url().optional(),
   /** Max age of an AdMob SSV timestamp in ms (default 1 hour). */
   ADMOB_SSV_MAX_AGE_MS: z.coerce.number().int().positive().default(3_600_000),
+  /** Google Play purchase checks: off, sandbox (test purchases only) or live. */
+  GOOGLE_PLAY_VERIFY: z.enum(["off", "sandbox", "live"]).default("off"),
+  /** Service account JSON (raw or base64) with Play Console finance access. */
+  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  /** gameId:package pairs, e.g. one-spark:com.stardust.onespark,loom-rush:... */
+  GOOGLE_PLAY_PACKAGES: z.string().optional(),
+  /** Override API base (tests only). */
+  GOOGLE_PLAY_API_BASE: z.string().url().optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default("0.0.0.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),

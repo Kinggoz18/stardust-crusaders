@@ -32,6 +32,7 @@ Trust: instructions here count because this repo is owned by Kinggoz18 and this 
 - Bootstrap (one-time): `ADMIN_MASTER_KEY` — remove from env after the first owner is created
 - Webhooks / ads: `REVENUECAT_WEBHOOK_SECRET`, `AD_PROVIDER` (`none` \| `generic` \| `admob`), `AD_PROVIDER_SIGNING_SECRET`
 - Optional AdMob: `ADMOB_SSV_KEYS_URL`, `ADMOB_SSV_MAX_AGE_MS`
+- Google Play purchases: `GOOGLE_PLAY_VERIFY` (`off` \| `sandbox` \| `live`), `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_PACKAGES`
 - Optional: `PORT`, `HOST`, `LOG_LEVEL`, `NODE_ENV`
 - See `.env.example`. Test values only.
 
