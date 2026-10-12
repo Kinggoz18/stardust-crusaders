@@ -25,6 +25,14 @@ const configSchema = z.object({
   GOOGLE_PLAY_PACKAGES: z.string().optional(),
   /** Override API base (tests only). */
   GOOGLE_PLAY_API_BASE: z.string().url().optional(),
+  /** App Store purchase checks: off, sandbox (Sandbox/Xcode only) or live. */
+  APPLE_IAP_VERIFY: z.enum(["off", "sandbox", "live"]).default("off"),
+  /** gameId:bundleId pairs, e.g. one-spark:com.stardust.onespark */
+  APPLE_BUNDLE_IDS: z.string().optional(),
+  /** App Store Server API key (optional extra check): issuer id, key id, .p8 contents. */
+  APPLE_ISSUER_ID: z.string().optional(),
+  APPLE_KEY_ID: z.string().optional(),
+  APPLE_PRIVATE_KEY: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default("0.0.0.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),

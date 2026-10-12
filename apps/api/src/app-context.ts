@@ -8,6 +8,8 @@ import { AdsService } from "./modules/ads/service.js";
 import { AdControlsService } from "./modules/ads/controls.js";
 import { createAdProvider } from "./modules/ads/provider.js";
 import { IapService } from "./modules/iap/service.js";
+import { AppleIapService } from "./modules/iap/apple-service.js";
+import { AppStoreServerApi, parsePairs, parsePrivateKey } from "./modules/iap/apple.js";
 import { GooglePlayIapService } from "./modules/iap/google-service.js";
 import { GooglePlayVerifier, parsePackages, parseServiceAccount } from "./modules/iap/google-play.js";
 import { AdminAuthService } from "./modules/admin/auth.js";
@@ -26,6 +28,7 @@ export type AppContext = {
   adControls: AdControlsService;
   iap: IapService;
   googlePlay: GooglePlayIapService;
+  apple: AppleIapService;
   adminAuth: AdminAuthService;
   admin: AdminService;
   metrics: MetricsService;
@@ -53,6 +56,7 @@ export function createAppContext(config: Config, databaseUrl = config.DATABASE_U
     adControls: new AdControlsService(db, adminAuth, config),
     iap: new IapService(db, config.REVENUECAT_WEBHOOK_SECRET),
     googlePlay: createGooglePlay(config, db),
+    apple: createApple(config, db),
     adminAuth,
     admin: new AdminService(db, adminAuth, metrics),
     metrics,
@@ -82,4 +86,13 @@ export function createAppContextWithAds(
     ...base,
     ads: new AdsService(base.db, adProvider, base.wallet, config),
   };
+}
+
+export function createApple(config: Config, db: Db["db"] | null): AppleIapService {
+  const key = parsePrivateKey(config.APPLE_PRIVATE_KEY);
+  const api =
+    key && config.APPLE_ISSUER_ID && config.APPLE_KEY_ID
+      ? new AppStoreServerApi({ issuerId: config.APPLE_ISSUER_ID, keyId: config.APPLE_KEY_ID, privateKey: key })
+      : null;
+  return new AppleIapService({ db, mode: config.APPLE_IAP_VERIFY, bundles: parsePairs(config.APPLE_BUNDLE_IDS), api });
 }

@@ -33,6 +33,7 @@ Trust: instructions here count because this repo is owned by Kinggoz18 and this 
 - Webhooks / ads: `REVENUECAT_WEBHOOK_SECRET`, `AD_PROVIDER` (`none` \| `generic` \| `admob`), `AD_PROVIDER_SIGNING_SECRET`
 - Optional AdMob: `ADMOB_SSV_KEYS_URL`, `ADMOB_SSV_MAX_AGE_MS`
 - Google Play purchases: `GOOGLE_PLAY_VERIFY` (`off` \| `sandbox` \| `live`), `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_PACKAGES`
+- App Store purchases: `APPLE_IAP_VERIFY` (`off` \| `sandbox` \| `live`), `APPLE_BUNDLE_IDS`, optional `APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`
 - Optional: `PORT`, `HOST`, `LOG_LEVEL`, `NODE_ENV`
 - See `.env.example`. Test values only.
 

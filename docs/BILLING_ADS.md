@@ -1,4 +1,4 @@
-# Google Play Billing and AdMob for One Spark, Loom Rush and Borrowed Time
+# Google Play Billing, App Store purchases and AdMob for One Spark, Loom Rush and Borrowed Time
 
 Research notes, 12 Oct 2026. These are the choices all three games and this backend follow.
 
@@ -7,7 +7,7 @@ Research notes, 12 Oct 2026. These are the choices all three games and this back
 | Need | Choice | Why |
 |---|---|---|
 | Ads | `@capacitor-community/admob` 8.x | Rewarded, interstitial, UMP consent and server-side verification (SSV) options in one plugin |
-| Purchases | `cordova-plugin-purchase` 13.x (`CdvPurchase.store`) | Talks to Play Billing directly and posts every receipt to our own validator URL. No third party in the money path |
+| Purchases | `capacitor-plugin-cdv-purchase` 13.18+ (Capacitor edition of cordova-plugin-purchase) | A single `store` API for both stores: **StoreKit 2** on iOS 15+ and **Play Billing 8.3** on Android. It posts every transaction to our own validator. No third party in the money path |
 | Not chosen | `@revenuecat/purchases-capacitor` | Needs Capacitor 8+, and we already run our own backend. The RevenueCat webhook stays in place in case we switch later |
 
 ## Ads
@@ -25,8 +25,9 @@ Research notes, 12 Oct 2026. These are the choices all three games and this back
 ## Purchases
 
 - Products are one-time items: the no-ads item is non-consumable, and currency packs are consumable. The product IDs come from `.env` (`VITE_IAP_PRODUCTS`, a list of `id:type` pairs) because Play Console IDs are set by Chigozie.
+- The platform comes from the build: `Capacitor.getPlatform()` gives `ios` → `Platform.APPLE_APPSTORE`, `android` → `Platform.GOOGLE_PLAY`, and web → the stub store. The games call one `IapPort`, and the store is chosen inside the kit.
 - Flow: `store.register` → `store.initialize([Platform.GOOGLE_PLAY])` → `order()`, then `approved` → `verify()`. The backend checks the purchase, and then `verified` → `finish()` (which consumes consumables).
-- `store.validator = ${VITE_API_BASE}/v1/iap/google/verify?game=<gameId>`. `applicationUsername` = the account id, sent as `obfuscatedAccountId`.
+- `store.validator = ${VITE_API_BASE}/v1/iap/verify?game=<gameId>`, a single endpoint for both stores, which dispatches on `transaction.type` (`android-playstore` or `apple-sk2`). `applicationUsername` = the account id. On Android it is sent as `obfuscatedAccountId`; on iOS it becomes `appAccountToken`, which needs a UUID, and account ids are UUIDs.
 
 ## Server-side verification (this repo)
 
@@ -35,11 +36,24 @@ Research notes, 12 Oct 2026. These are the choices all three games and this back
 - It checks that `purchaseStateContext.purchaseState == PURCHASED`, that the product id matches, and that `obfuscatedExternalAccountId` matches the account. In `sandbox` mode it also requires `testPurchaseContext`.
 - It records `gp:<sha256(token)>` in `iap_webhook_events` (idempotent), acknowledges the purchase if needed, and returns `{ok:true,data:{...}}`. Pending purchases return code 6778004, so the store retries.
 - Env: `GOOGLE_PLAY_VERIFY` (off/sandbox/live), `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`, `GOOGLE_PLAY_PACKAGES`.
-- Later: RTDN (`OneTimeProductNotification`) through Pub/Sub, for refunds.
+## App Store verification (this repo)
+
+- StoreKit 2 sends a per-transaction **JWS** (`jwsRepresentation`) instead of the old receipt. `/verifyReceipt` is deprecated, so it is not used.
+- `POST /v1/iap/verify?game=...` with `apple-sk2`:
+  - Checks the JWS offline. The `x5c` chain must end at **Apple Root CA – G3**, which is pinned in `apple-root.ts` (SHA-256 `63:34:3A:…:91:79`). The leaf must carry OID `1.2.840.113635.100.6.11.1` and the intermediate `1.2.840.113635.100.6.2.1`. The signature is ES256.
+  - Then checks the `bundleId` (from `APPLE_BUNDLE_IDS`), the `productId`, the `environment` (sandbox mode allows only Sandbox, Xcode and LocalTesting), and `revocationDate`, and that `appAccountToken` matches the player.
+- If an App Store Server API key is set (`APPLE_ISSUER_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` .p8), it also calls `GET https://api.storekit[-sandbox].itunes.apple.com/inApps/v1/transactions/{transactionId}`. The bearer is an ES256 JWT with `aud=appstoreconnect-v1`, `bid` and `kid`, and the returned `signedTransactionInfo` is checked the same way.
+- **App Store Server Notifications V2:** `POST /v1/webhooks/apple` with `{signedPayload}`. The payload is checked as above, each `notificationUUID` is stored once, and REFUND/REVOKE details are kept. Set this URL as the Production and Sandbox server URL in App Store Connect.
+- Records go to `iap_webhook_events` with provider `app-store` (`as:<transactionId>`, `asn:<uuid>`).
+
+## Later
+
+- RTDN (`OneTimeProductNotification`) through Pub/Sub, for refunds.
 
 ## Chigozie supplies
 
-1. Play Console product IDs for each game.
+1. Play Console and App Store Connect product IDs for each game. Use the same ids on both stores where you can.
 2. AdMob app id, plus rewarded and interstitial unit ids, for each game.
 3. A service-account JSON, invited in Play Console with financial and order access.
 4. Final Android package names.
+5. Apple: bundle ids, App Store Connect in-app purchase products, optionally an In-App Purchase API key (issuer id, key id, .p8), and the Notifications V2 URL set to `/v1/webhooks/apple`.
